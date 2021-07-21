@@ -14,6 +14,8 @@ from scipy.stats import dirichlet
 
 import random
 
+import plotly.figure_factory as ff
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -764,3 +766,51 @@ class LBM_Regression:
     
     def print_in_file():
         return #fichier avec données enregistrées et formatées 
+
+    def __extract_features(self, experimental_domain: dict):
+        try:
+            screened_var = [key for key in experimental_domain.keys() if experimental_domain[key] is None]
+
+            return screened_var
+
+        except ValueError:
+            print('To plot a ternary diagram please set 3 variable values to None')
+        
+    def __generate_ternary_matrix(self, experimental_domain: dict, alpha: list=None, size: int = 1000, random_state: int=None):
+        var = self.__extract_features(experimental_domain)
+        Arr = self.__mix_features_generator(alpha, size, random_state, var)
+        
+        set_values = []
+        set_values_names = []
+
+        for key, value in experimental_domain.items():
+            if experimental_domain[key] is not None:
+                set_values_names.append(key)
+                set_values.append(value)
+        
+        df_Arr = (self.mixmax * pd.DataFrame(Arr, columns=var) - self.mixmin)
+
+        Bc_set_values = np.broadcast_to(np.array(set_values).reshape(1,-1), (size, len(set_values)))
+        X = pd.DataFrame(np.hstack((df_Arr, Bc_set_values)), columns = var + set_values_names)
+        X_complete = 100* X / np.sum(X, axis=1).mean()
+
+
+        Results = self.predict(X_complete)
+        #print(X[self.X_start.columns.tolist()], Results)
+        return var, X, Results
+
+    def ternary_contour(self, experimental_domain: dict, alpha: list=None, size: int = 1000, random_state: int=None, ncontours:int=20, colorscale='Viridis'):
+
+        var, X, results = self.__generate_ternary_matrix(experimental_domain, alpha, size, random_state)
+        
+        for res in results:
+            fig = ff.create_ternary_contour(np.array(X[var]).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian',
+                                    colorscale=colorscale,
+                                    showscale=True,
+                                    ncontours = ncontours)
+            fig.show()
+        return self
+
+    def response_surface(self, a, b, c):
+        print('Not implemented yet')
+        return 
