@@ -5,16 +5,20 @@ DEPENDENCIES
 """
 
 
+from pandas.core.frame import DataFrame
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
+from mpl_toolkits import mplot3d
 
 from scipy.stats import dirichlet
 
 import random
 
 import matplotlib.pyplot as plt
+
+import plotly.figure_factory as ff
 import pandas as pd
 import numpy as np
 
@@ -292,7 +296,7 @@ class LBM_Regression:
             name = y.name
         else :
             name=y.columns
-        print(y)
+        
         self.corr_X = pd.DataFrame(np.corrcoef(pd.concat([X, y], axis=1).T), columns= X.columns.tolist() + [name])
         return
         
@@ -397,37 +401,39 @@ class LBM_Regression:
             DataFrame
             
         """
+       
         desirability = pd.DataFrame(np.ones((prediction.shape[0], 1)), columns=['desirability']) 
                  
         for i in range(0, prediction.shape[1]):
-                if prediction.shape[1] > 1:
-                    location = prediction.iloc[:, i]
-                else:
-                    location = prediction
+            if prediction.shape[1] > 1:
+                location = prediction.iloc[:, i]
+            else:
+                location = prediction
         
-        if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
-            goal = target
-        elif type(target) is list:
-            goal= target[i]
-        else:
-            raise TypeError("target is either a string, a float, an integer or a list")
-                    
-        if goal=='maximize': #desirability to maximise the response
-            objective = np.divide(location - location.min(axis = 0), location.max(axis=0)- location.min(axis=0))
-        elif goal=='minimize': #desirability to minimize the response
-            objective = np.divide(location.max(axis = 0) - location, location.max(axis=0) - location.min(axis=0))
-        elif (goal == 'none') or (goal is None): #desirability to reach a specific target value
-            objective = 0
-        else:
-            Solution1 = (location - location.min(axis=0))/ (goal - location.min(axis=0))
-            Solution2 = (location - location.max(axis=0))/ (goal - location.max(axis=0))
-            objective = np.minimum(Solution1, Solution2)
-                
-        if target_weights is None:
-            target_weights = [1 for n in range(0,prediction.shape[1])]
-                
+            if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
+                goal = target
+            elif type(target) is list:
+                goal= target[i]
+            else:
+                raise TypeError("target is either a string, a float, an integer or a list")
 
-        desirability = np.multiply(desirability, np.power(np.array(objective), target_weights[i]/np.sum(target_weights)).reshape(-1,1))
+                    
+            if goal=='maximize': #desirability to maximise the response
+                objective = np.divide(location - location.min(axis = 0), location.max(axis=0)- location.min(axis=0))
+            elif goal=='minimize': #desirability to minimize the response
+                objective = np.divide(location.max(axis = 0) - location, location.max(axis=0) - location.min(axis=0))
+            elif (goal == 'none') or (goal is None): #desirability to reach a specific target value
+                objective = 0
+            else:
+                Solution1 = (location - location.min(axis=0))/ (goal - location.min(axis=0))
+                Solution2 = (location - location.max(axis=0))/ (goal - location.max(axis=0))
+                objective = np.minimum(Solution1, Solution2)
+                    
+            if target_weights is None:
+                target_weights = [1 for n in range(0,prediction.shape[1])]
+                    
+
+            desirability = np.multiply(desirability, np.power(np.array(objective), target_weights[i]/np.sum(target_weights)).reshape(-1,1))
         return desirability
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
@@ -548,11 +554,11 @@ class LBM_Regression:
 
                 self.model[i]['metrics'].append(self.__model_evaluation(self.model[i]['results']))
                 
-            self.nb_predictor = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
+            self.model[i]['nb_predictor'] = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
             self.model[i]['model_final'] = LinearRegression()
                 
-            self.model[i]['model_final'].fit(self.model[i]['results'].iloc[:,1:self.nb_predictor+1],  y[i])
-            self.model[i]['y_pred'] = self.model[i]['model_final'].predict(self.model[i]['results'].iloc[:,1:self.nb_predictor+1])
+            self.model[i]['model_final'].fit(self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1],  y[i])
+            self.model[i]['y_pred'] = self.model[i]['model_final'].predict(self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1])
                 
             coefficients = np.array(self.model[i]['model_final'].coef_).reshape(len(self.model[i]['model_final'].coef_), 1)
             print(f'MODELISATION OF THE TARGET {y[i].name}', '\n' , 
@@ -563,11 +569,12 @@ class LBM_Regression:
                   sep="\n")
             end = time.time()
             print(f'fit method computed in {round(end-start, 3)} seconds')
-        
+        self.with_fit = True
         return self
     
     def predict(self, X): 
         #transformation of the matrix of parameters to predict
+        X = X[self.X_start.columns]
         transformed_X = pd.DataFrame(self.transformer.transform(X), columns=X.columns.tolist())
         
         
@@ -582,20 +589,30 @@ class LBM_Regression:
             new_X = None
         
         #computation of the selected and enginered features of the model
-            for element in self.model[i]['selected_features'][:self.nb_predictor]:
-                func = interaction_dict[element[0]]['interaction']
-                x_df= transformed_X[interaction_dict[element[0]]["x"].name]
-                y_df= transformed_X[interaction_dict[element[0]]["y"].name]
+            for element in self.model[i]['selected_features'][:self.model[i]['nb_predictor']]:
+                try :
+                    func = interaction_dict[element[0]]['interaction']
+                    x_df= transformed_X[interaction_dict[element[0]]["x"].name]
+                    y_df= transformed_X[interaction_dict[element[0]]["y"].name]
+                    col = eval(func)(x_df, y_df).compute()
+                except KeyError:
+                    col = transformed_X[element[0]]
+            
+                finally:
+                    pd.options.mode.use_inf_as_na = True
+                    
+                    if any(col.isna()):
+                        col[col.isna()] = 0
+                    
+                    
 
-                col = eval(func)(x_df, y_df).compute()
-
-                if 'new_X' not in locals():
-                    new_X = col
-                else:
-                    new_X = pd.concat((new_X, col), axis=1)
-
+                    if 'new_X' not in locals():
+                        new_X = col
+                    else:
+                        new_X = pd.concat((new_X, col), axis=1)
+            
             #transformation to acurate scale
-            L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.nb_predictor])[:,-1]]
+            L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.model[i]['nb_predictor']])[:,-1]]
             Coef = self.Coef[:,L]
 
             Denomin = pd.DataFrame(self.denomin).iloc[L].transpose()
@@ -604,8 +621,8 @@ class LBM_Regression:
             var_X = np.divide(np.subtract(np.array(new_X)*self.Shape, Coef), Denominator)
             variable_instant_X = pd.DataFrame(var_X, columns=Denomin.columns.tolist())
 
+            
             #computation with the coefficients
-
             self.model[i]['y_pred'] = pd.DataFrame(np.dot(variable_instant_X, self.model[i]['model_final'].coef_.reshape(-1,1)) + np.array(self.model[i]['model_final'].intercept_).reshape(1,1), columns=[f'Pred{i}'])
             
             self.y_pred = pd.concat((self.y_pred, self.model[i]['y_pred']), axis=1)
@@ -613,18 +630,19 @@ class LBM_Regression:
         return self.y_pred
     
     def features_analysis(self, X):
-        experimental_domain = {}
+        self.experimental_domain = {}
         
         for feature in X.columns.tolist():
-            
-            if (len(X[feature].unique()) < 2) or ((len(X[feature].unique()) / X.shape[0] ) < 0.05) or X[feature].dtype is int :
+            #print(set([int(num) for num in X[feature].unique()]))
+            if len(X[feature].unique()) == len(set([int(num) for num in X[feature].values])):
+            #(len(X[feature].unique()) < 6 ) or ((len(X[feature].unique()) / X.shape[0] ) < 0.05) or X[feature].dtype is int :
                 vartype = 'discrete'
                 varlist = X[feature].unique().tolist()
             else:
                 vartype = 'continuous'
                 varlist = None
             
-            experimental_domain[X[feature].name] = [X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
+            self.experimental_domain[X[feature].name] = [None, X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
         
         self.mix=None
         for i in range(0, X.shape[1]):
@@ -637,32 +655,33 @@ class LBM_Regression:
                     self.mixmin = X.iloc[:, i:j].min(axis=0).mean()
                     break
         
-        exp_dom = pd.DataFrame(experimental_domain, index=['min value', 'max_value', 'values', 'var type'])
+        exp_dom = pd.DataFrame(self.experimental_domain, index=['status','min value', 'max_value', 'values', 'var type'])
         print('experimental domain: ', exp_dom, 'mixture: ', self.mix, sep='\n\n' )
-        
-        return experimental_domain, self.mix
-    
-    
+
+        return self.experimental_domain, self.mix
+
     def __features_generator(self, remaining_features, experimental_domain, size):
-        
         #create random array respecting the restrictions of the features 
         for var in remaining_features:
-            if experimental_domain[var][3] == 'discrete':
-                    #create a random array of the discrete values
-                    exploration_array = np.random.choice(experimental_domain[var][2], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
-            elif experimental_domain[var][3] == 'continuous':
-                    #create a random array of the discrete values
-                    exploration_array = experimental_domain[var][1] * random.Generator.random((size, 1), dtype=np.float64) - experimental_domain[var][0]
-            experimental_domain[var].append(exploration_array)
-        
+            if experimental_domain[var][4] == 'discrete':
+                #create a random array of the discrete values
+                exploration_array = np.random.choice(experimental_domain[var][2], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
+            elif experimental_domain[var][4] == 'continuous':
+                #create a random array of the discrete values
+                rng = np.random.default_rng()
+                exploration_array = (experimental_domain[var][2] - experimental_domain[var][1]) * rng.random((size, 1), dtype=np.float64) + experimental_domain[var][1]
+            try:
+                experimental_domain[var][5] = exploration_array
+            except:
+                experimental_domain[var].append(exploration_array)  
         return experimental_domain
     
     def __mix_features_generator(self, alpha, size, random_state, mix):
         if alpha is None:
-             alpha = np.ones((len(self.mix))) / len(self.mix)
-        return pd.DataFrame(dirichlet.rvs(alpha, size=size, random_state=random_state), columns = self.mix)
+             alpha = np.ones((len(mix))) / len(mix)
+        return pd.DataFrame(dirichlet.rvs(alpha, size=size, random_state=random_state), columns = mix)
     
-    def generator(self, experimental_domain, mix, alpha : list=None, size: int= 10000, random_state: int=None):
+    def generator(self, experimental_domain, mix, alpha : list, size: int, random_state: int=None):
         x=None
         
         if mix is not None:
@@ -670,14 +689,15 @@ class LBM_Regression:
                 
                 remaining_features = list(set(self.X.columns.tolist()) - set(mix))
         else:
-            remaining_features = experimental_domain.key()
-                
+            remaining_features = experimental_domain.keys()
+        print("size = " + str(size))   
         if len(remaining_features) > 0:
             experimental_domain = self.__features_generator(remaining_features, experimental_domain, size)
             for var in remaining_features:
                 if x is None:
                     x = pd.DataFrame()   
-                x = pd.concat((x, pd.DataFrame(experimental_domain[var][4], columns=[var])), axis=1)
+                #a voir si erreur
+                x = pd.concat((x, pd.DataFrame(experimental_domain[var][5], columns=[var])), axis=1)
         return x
     
     def optimize(self, experimental_domain:dict=None, target:list=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
@@ -708,7 +728,7 @@ class LBM_Regression:
     def fitting_score(self, y):
         self.model[y.name]['r2score'] = r2_score(y, self.model[y.name]['y_pred']).round(3)
         self.model[y.name]['adjustedr2score'] = (1-(1-self.model[y.name]['r2score'])*(self.model[y.name]['results'].shape[0]-1)/(self.model[y.name]['results'].shape[0]-self.model[y.name]['results'].shape[1]-1)).round(3)
-        self.model[y.name]['Q2_obs'] = self.model[y.name]['metrics'][self.nb_predictor-1]
+        self.model[y.name]['Q2_obs'] = self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1]
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
         print(stats)
         return
@@ -735,7 +755,7 @@ class LBM_Regression:
     
     def metrics_curve(self, y):
         plt.plot(np.arange(1, len(self.model[y.name]['metrics'])+1), self.model[y.name]['metrics'])
-        plt.plot(self.nb_predictor, self.model[y.name]['metrics'][self.nb_predictor-1], linestyle='none', marker='o', label='Optimal number of predictors')
+        plt.plot(self.model[y.name]['nb_predictor'], self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1], linestyle='none', marker='o', label='Optimal number of predictors')
         plt.legend()
         plt.xlabel('number of predictors')
         plt.ylabel('Q² values')
@@ -764,3 +784,116 @@ class LBM_Regression:
     
     def print_in_file():
         return #fichier avec données enregistrées et formatées 
+
+    def __extract_features(self, experimental_domain: dict):
+
+        try:
+            screened_var = [key for key in experimental_domain.keys() if experimental_domain[key][0] == 'toPlot']
+
+            return screened_var
+
+        except ValueError:
+            print('To plot a ternary diagram please set 3 variable values to None')
+        
+    def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
+        #list the features to plot
+        var = self.__extract_features(experimental_domain)
+        #generate a dataset
+        Arr = self.__mix_features_generator(alpha, size, random_state, var)
+        
+        #scale the data to the right values
+        df_Arr = (self.mixmax * pd.DataFrame(Arr, columns=var) - self.mixmin)
+
+        #list the feature not plot
+        set_values = []
+        set_values_names = []
+
+        for key, value in experimental_domain.items():
+            if isinstance(experimental_domain[key][0], (int, float)):
+                set_values.append(value[0])
+                set_values_names.append(key)
+            #if experimental_domain[key][0] is None:
+                
+                
+
+        #broadcast the set values to complete the dataset and
+        Bc_set_values = np.broadcast_to(np.array(set_values).reshape(1,-1), (size, len(set_values)))
+        X = pd.DataFrame(np.hstack((df_Arr, Bc_set_values)), columns = var + set_values_names)
+
+        """
+        <!!> Probleme si toutes les variables ne font pas partie d'un plan de mélange !!!
+        """
+        #set the mixture to the acurate sum
+        #print(X)
+        X_mix = 100* X[mix] / np.sum(X[mix], axis=1).mean()
+        X = pd.concat((X[set(X.columns)-set(X_mix.columns)], X_mix), axis=1)
+        #print(X[self.X_start.columns])
+        Results = self.predict(X[self.X_start.columns])
+
+        return var, X, Results
+
+    def TM_plot(self, experimental_domain: dict, mix: list = None, alpha: list=None, size: int = 1000, random_state: int=None, ncontours: int=20):
+        #generate the accurate data to be plot
+        if mix is None:
+            if self.with_fit:
+                mix = self.mix
+        var, X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
+        
+        #plot the ternary contour for each targets
+        for res in results:
+            fig = ff.create_ternary_contour(np.array(X[var]).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
+            fig.show()
+        return self
+    
+    def RS_plot(self, X: DataFrame = None, Y: DataFrame = None, experimental_domain: dict=None, size: int = 10000):
+        #If variables are undefined by user, get the variables that were use for modelling
+        if self.with_fit:
+            if X is None:
+                X = self.X_start 
+            if Y is None:
+                Y= self.y
+            if experimental_domain is None:
+                experimental_domain = self.experimental_domain
+        else : 
+            #if fit method has not been used yet -> user must define X and Y
+            if (X is None) or (Y is None):
+                raise ValueError('')
+        
+        #List the variables to plot in the model
+        features_to_plot = self.__extract_features(experimental_domain)
+        
+        #generate the data that will be plotted
+        X_complete = self.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
+
+        #Set the fixed variables to the desired value
+        Arr=[]
+        Arr_name=[]
+        for key in (set(experimental_domain.keys())-set(features_to_plot)):
+            if not isinstance(experimental_domain[key][0], (int, float)):
+                Arr.append(0)
+            else:
+                Arr.append(experimental_domain[key][0])
+            Arr_name.append(key)
+        X_complete[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
+        print(X_complete.describe())
+        
+        #Compute the output values of the data
+        Y = self.predict(X_complete[self.X_start.columns])
+
+        #Plot the surface for each target
+        a,b = X_complete.iloc[:, 0], X_complete.iloc[:,1]
+        for c in Y:
+
+            fig = plt.figure(figsize=(14,9))    
+            ax = plt.axes(projection='3d')
+            Cmap = plt.get_cmap('viridis')
+
+            Z = Y[c].values.tolist()            
+            surf = ax.plot_trisurf(a.values.tolist(), b.values.tolist(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
+            fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
+            ax.set_xlabel(f'{a.name}')
+            ax.set_ylabel(f'{b.name}')
+            ax.set_zlabel(f'{c}')
+            ax.set_title(f'{c}=f({a.name, b.name}')
+                    
+            fig.show()
