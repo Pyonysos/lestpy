@@ -14,11 +14,15 @@ from mpl_toolkits import mplot3d
 
 from scipy.stats import dirichlet
 
-import random
+import inspect
+
+#for print_in_file()
+from docx import Document
+from docx.shared import Inches
 
 import matplotlib.pyplot as plt
-
 import plotly.figure_factory as ff
+import plotly.express as px
 import pandas as pd
 import numpy as np
 
@@ -33,9 +37,25 @@ INTERACTION CLASSES
 **************************************************************************************************************************
 """
 class Interaction:
-    def __init__(self, x, y):
+    def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
         self.y = y
+        if max_x == None:
+            self.max_x = np.max(self.x)
+        else:
+            self.max_x = max_x
+        if max_y == None:
+            self.max_y = np.max(self.y)
+        else:
+            self.max_y = max_y
+        if min_x == None:
+            self.min_x = np.min(self.x)
+        else:
+            self.min_x = min_x
+        if min_y == None:
+            self.min_y = np.min(self.y)
+        else:
+            self.min_y = min_y
 
         if not hasattr(self.x, 'name') or not hasattr(self.y, 'name'):
             self.x = pd.DataFrame(self.x, name='x')
@@ -46,8 +66,8 @@ class Interaction:
         return new_var   
 
 class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort quand {self.y.name} faible et inversement'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
@@ -57,107 +77,107 @@ class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
         return func
         
 class X_fort_Ou_Y_fort(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort ou {self.y.name} fort'
         self.interaction = self.__class__.__name__       
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array(-(np.max(self.x)-self.x)*(np.max(self.y)-self.y)).reshape(-1,1)
+        func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
         return func
     
 class X_fort_Ou_Y_faible(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort ou {self.y.name} faible'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
-        func = np.array(-(np.max(self.x)-self.x)*(np.abs(np.min(self.y))+self.y)).reshape(-1,1)
+        func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
 
 class X_et_Y_forts(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} et {self.y.name} forts'
         self.interaction = self.__class__.__name__ 
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((self.x+np.abs(np.min(self.x)))*(self.y+np.abs(np.min(self.y)))).reshape(-1,1)
+        func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
         return func
                                         
 class X_fort_et_Y_faible(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort et {self.y.name} faible'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((self.x+np.abs(np.min(self.x)))*(np.max(self.y)-self.y)).reshape(-1,1)
+        func = np.array((self.x+np.abs(self.min_x))*(self.max_y-self.y)).reshape(-1,1)
         return func
 
 class X_fort_si_Y_fort(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort si {self.y.name} fort'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array(self.x*(np.abs(np.min(self.y))+self.y)).reshape(-1,1)
+        func = np.array(self.x*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
                                           
 class X_fort_si_Y_faible(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort si {self.y.name} faible'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array(self.x*(np.abs(np.max(self.y))-self.y)).reshape(-1,1)
+        func = np.array(self.x*(np.abs(self.max_y)-self.y)).reshape(-1,1)
         return func
          
 class X_fort_si_Y_moyen(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} fort si {self.y.name} moyen'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
-        func = np.array(self.x / np.sqrt((np.max(self.y)+np.abs(np.min(self.y)))/500+np.square(self.y))).reshape(-1,1)
+        func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y))/500+np.square(self.y))).reshape(-1,1)
         return func
         
 class X_moyen_si_Y_fort(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} moyen si {self.y.name} fort'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((np.abs(np.min(self.y))+self.y)/np.sqrt((np.max(self.x)+np.abs(np.min(self.x)))/200+np.square(self.x))).reshape(-1,1)
+        func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
 
 class X_moyen_si_Y_faible(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} moyen si {self.y.name} faible'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((np.max(self.y)-self.y)/np.sqrt((np.max(self.x)+np.abs(np.min(self.x)))/200+np.square(self.x))).reshape(-1,1)
+        func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
     
 class Ni_X_ni_Y_extremes(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Ni {self.x.name} ni {self.y.name} extremes'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
@@ -167,19 +187,19 @@ class Ni_X_ni_Y_extremes(Interaction):
         return func
     
 class X_Y_moyens(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} et {self.y.name} moyens'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((np.square(np.max(self.x))-np.square(self.x))*(np.square(np.max(self.y))-np.square(self.y))).reshape(-1,1)
+        func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
         return func
     
 class X_comme_Y(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} comme {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
@@ -189,8 +209,8 @@ class X_comme_Y(Interaction):
         return func
     
 class Somme_X_et_Y_forte(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Somme {self.x.name} et {self.y.name} forte'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
@@ -200,8 +220,8 @@ class Somme_X_et_Y_forte(Interaction):
         return func
     
 class Difference_X_et_Y_forte(Interaction):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference {self.x.name} et {self.y.name} forte'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
@@ -218,6 +238,11 @@ CORICO ALGORHITHM
 
 class LBM_Regression:
     def __init__(self):
+        self.with_optimization = False
+        self.with_interactions = False
+        self.with_fit = False
+        self.with_transform = False
+        self.with_variable_instant = False
         return
     
     def bibliography(self):
@@ -238,10 +263,10 @@ class LBM_Regression:
                 for interaction in interaction_list:
                     if i != j:
                         #changer en numpy
-                        new_X = pd.concat((new_X, interaction(X.iloc[:,i], X.iloc[:,j]).compute()), axis =1)
+                        new_X = pd.concat((new_X, interaction(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0) ).compute()), axis =1)
                     else:
                         if not interaction in [Difference_X_et_Y_forte, X_comme_Y]:
-                            new_X = pd.concat((new_X, interaction(X.iloc[:,i], X.iloc[:,j]).compute()), axis =1)
+                            new_X = pd.concat((new_X, interaction(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0)).compute()), axis =1)
         
         self.with_interactions = True
                             
@@ -571,13 +596,25 @@ class LBM_Regression:
             print(f'fit method computed in {round(end-start, 3)} seconds')
         self.with_fit = True
         return self
+
+    def fit_transform(self, X, y, **params):
+        #select and pass kwargs to transform method
+        transform_args = [key for key, value in inspect.signature(self.transform).parameters.items()]
+        transform_dict = {key: params.pop(key) for key in dict(params) if key in transform_args}
+        self.transform(X, y, **transform_dict)
+        
+        #select and pass kwargs to fit method
+        fit_args = [key for key in inspect.signature(self.fit).parameters.items()]
+        fit_dict = {key: params.pop(key) for key in dict(params) if key in fit_args}
+        self.fit(**fit_dict)
+        return self
     
     def predict(self, X): 
         #transformation of the matrix of parameters to predict
         X = X[self.X_start.columns]
+
         transformed_X = pd.DataFrame(self.transformer.transform(X), columns=X.columns.tolist())
-        
-        
+        transformed_X_start = pd.DataFrame(self.transformer.transform(self.X_start), columns=X.columns.tolist())
         self.y_pred = pd.DataFrame()
         
         try:
@@ -588,13 +625,18 @@ class LBM_Regression:
         for i in y:
             new_X = None
         
-        #computation of the selected and enginered features of the model
+            #computation of the selected and enginered features of the model
             for element in self.model[i]['selected_features'][:self.model[i]['nb_predictor']]:
                 try :
                     func = interaction_dict[element[0]]['interaction']
                     x_df= transformed_X[interaction_dict[element[0]]["x"].name]
                     y_df= transformed_X[interaction_dict[element[0]]["y"].name]
-                    col = eval(func)(x_df, y_df).compute()
+
+                    max_x = np.max(transformed_X_start[interaction_dict[element[0]]["x"].name])
+                    min_x = np.min(transformed_X_start[interaction_dict[element[0]]["x"].name])
+                    max_y = np.max(transformed_X_start[interaction_dict[element[0]]["y"].name])
+                    min_y = np.min(transformed_X_start[interaction_dict[element[0]]["y"].name])
+                    col = eval(func)(x_df, y_df, max_x=max_x, min_x=min_x, max_y=max_y, min_y=min_y).compute()
                 except KeyError:
                     col = transformed_X[element[0]]
             
@@ -612,19 +654,21 @@ class LBM_Regression:
                         new_X = pd.concat((new_X, col), axis=1)
             
             #transformation to acurate scale
+            #L = position of the interaction in the Coef and denomin vectors
             L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.model[i]['nb_predictor']])[:,-1]]
+            
             Coef = self.Coef[:,L]
-
+            
             Denomin = pd.DataFrame(self.denomin).iloc[L].transpose()
+            
             Denominator = np.array(Denomin).reshape(1, Denomin.shape[1])
 
             var_X = np.divide(np.subtract(np.array(new_X)*self.Shape, Coef), Denominator)
+
             variable_instant_X = pd.DataFrame(var_X, columns=Denomin.columns.tolist())
 
-            
             #computation with the coefficients
             self.model[i]['y_pred'] = pd.DataFrame(np.dot(variable_instant_X, self.model[i]['model_final'].coef_.reshape(-1,1)) + np.array(self.model[i]['model_final'].intercept_).reshape(1,1), columns=[f'Pred{i}'])
-            
             self.y_pred = pd.concat((self.y_pred, self.model[i]['y_pred']), axis=1)
         
         return self.y_pred
@@ -650,13 +694,13 @@ class LBM_Regression:
                 a = X.iloc[:, i:j].sum(axis=1)
                 
                 if sum(np.abs(a - a.mean())) < sum(np.abs(a*0.05)):
-                    self.mix=X.iloc[:, i:j].columns.tolist()
+                    self.mix = X.iloc[:, i:j].columns.tolist()
                     self.mixmax = X.iloc[:, i:j].max(axis=0).mean()
                     self.mixmin = X.iloc[:, i:j].min(axis=0).mean()
                     break
         
         exp_dom = pd.DataFrame(self.experimental_domain, index=['status','min value', 'max_value', 'values', 'var type'])
-        print('experimental domain: ', exp_dom, 'mixture: ', self.mix, sep='\n\n' )
+        #print('experimental domain: ', exp_dom, 'mixture: ', self.mix, sep='\n\n' )
 
         return self.experimental_domain, self.mix
 
@@ -685,7 +729,7 @@ class LBM_Regression:
         x=None
         
         if mix is not None:
-                x = self.mixmax * self.__mix_features_generator(alpha, size, random_state, mix) - self.mixmin
+                x = (self.mixmax- self.mixmin) * self.__mix_features_generator(alpha, size, random_state, mix) + self.mixmin
                 
                 remaining_features = list(set(self.X.columns.tolist()) - set(mix))
         else:
@@ -723,11 +767,12 @@ class LBM_Regression:
             print("Mean of the 5 best results", np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), "Best result", np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3), sep='\n\n')
             print('Sample description:', sample.describe().round(2), sep='\n\n')
             
+            self.with_optimization = True
             return res   
     
     def fitting_score(self, y):
         self.model[y.name]['r2score'] = r2_score(y, self.model[y.name]['y_pred']).round(3)
-        self.model[y.name]['adjustedr2score'] = (1-(1-self.model[y.name]['r2score'])*(self.model[y.name]['results'].shape[0]-1)/(self.model[y.name]['results'].shape[0]-self.model[y.name]['results'].shape[1]-1)).round(3)
+        self.model[y.name]['adjustedr2score'] = (1-(1-self.model[y.name]['r2score'])*(self.model[y.name]['results'].shape[0]-1)/(self.model[y.name]['results'].shape[0]-self.model[y.name]['nb_predictor']-1)).round(3)
         self.model[y.name]['Q2_obs'] = self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1]
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
         print(stats)
@@ -737,9 +782,17 @@ class LBM_Regression:
         return
     
     
-   
+    """
     def residues_hist(self, y):
         plt.hist(y-self.model[y.name]['y_pred'], bins=10)
+        plt.xlabel('residual distance')
+        plt.ylabel('observation number')
+        plt.title('Distribution of the residuals')
+        return
+    """
+
+    def residues_hist(self, y):
+        plt.scatter(y, self.model[y.name]['y_pred']-y)
         plt.xlabel('residual distance')
         plt.ylabel('observation number')
         plt.title('Distribution of the residuals')
@@ -781,67 +834,110 @@ class LBM_Regression:
             self.metrics_curve(y[i])
             plt.suptitle('Overview of the modelisation')
         return
+
     
+    def print_in_file(self, title: str ='title'):
+                
+
+        document = Document()
+
+        document.add_heading(f'{title}', 0)
+        if self.with_fit:
+            document.add_heading('Modelization', level=1)
+            document.add_heading('Model', level=2, style='List Number')
+            document.add_heading('Metrics', level=2, style='List Number')
+            document.add_heading('Plots', level=2, style='List Number')
+            document.add_heading('Sensibility analysis', level=2, style='List Number')
+    
+            records = (
+            (3, '101', 'Spam'),
+            (7, '422', 'Eggs'),
+            (4, '631', 'Spam, spam, eggs, and spam')
+            )
+
+            table = document.add_table(rows=1, cols=3)
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Qty'
+            hdr_cells[1].text = 'Id'
+            hdr_cells[2].text = 'Desc'
+            for qty, id, desc in records:
+                row_cells = table.add_row().cells
+                row_cells[0].text = str(qty)
+                row_cells[1].text = id
+                row_cells[2].text = desc
+            
+            document.add_page_break()
+
+        if self.with_optimization:
+            document.add_heading('Optimization', level=1)
+            document.add_heading('Targets', level=2, style='List Number')
+            document.add_heading('Best Trials', level=2, style='List Number')
+            document.add_heading('Pareto', level=2, style='List Number')
+        
+
+        document.add_picture('monty-truth.png', width=Inches(1.25))
+
+
+        document.save(f'{title}.docx')
+=======
     def print_in_file(self):
         return #fichier avec données enregistrées et formatées 
 
     def __extract_features(self, experimental_domain: dict):
-
+        screened_var=[]
+        set_mix_var =[]
+        set_mix_values=[]
+        set_var=[]
+        set_values=[]
         try:
-            screened_var = [key for key in experimental_domain.keys() if experimental_domain[key][0] == 'toPlot']
+            for key in experimental_domain.keys():
+                if experimental_domain[key][0] == 'toPlot':
+                    screened_var.append(key)
+                else:
+                    if isinstance(experimental_domain[key][0], (int, float)):
+                        if key in self.mix:
+                            set_mix_var.append(key)
+                            set_mix_values.append(experimental_domain[key][0])
+                        else:
+                            set_var.append(key)
+                            set_values.append(experimental_domain[key][0])
 
-            return screened_var
+            return screened_var, set_mix_var, set_mix_values, set_var, set_values
 
         except ValueError:
             print('To plot a ternary diagram please set 3 variable values to "toPlot"')
         
     def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
         #list the features to plot
-        var = self.__extract_features(experimental_domain)
-        #generate a dataset
-        Arr = self.__mix_features_generator(alpha, size, random_state, var)
+        var, set_mix_var, set_mix_values, set_var, set_values = self.__extract_features(experimental_domain) 
         
-        #scale the data to the right values
-        df_Arr = (self.mixmax * pd.DataFrame(Arr, columns=var) - self.mixmin)
-
-        #list the feature not plot
-        set_values = []
-        set_values_names = []
-
-        for key, value in experimental_domain.items():
-            if isinstance(experimental_domain[key][0], (int, float)):
-                set_values.append(value[0])
-                set_values_names.append(key)
-            #if experimental_domain[key][0] is None:
-                
-                
+        #generate a dataset and scale to right maximum
+        Arr = (self.mixmax - self.mixmin - sum(set_mix_values)) * self.__mix_features_generator(alpha, size, random_state, var) + self.mixmin
 
         #broadcast the set values to complete the dataset and
         Bc_set_values = np.broadcast_to(np.array(set_values).reshape(1,-1), (size, len(set_values)))
-        X = pd.DataFrame(np.hstack((df_Arr, Bc_set_values)), columns = var + set_values_names)
+        Bc_set_mix_values = np.broadcast_to(np.array(set_mix_values).reshape(1,-1), (size, len(set_mix_values)))
 
-        """
-        <!!> Probleme si toutes les variables ne font pas partie d'un plan de mélange !!!
-        """
-        #set the mixture to the acurate sum
-        #print(X)
-        X_mix = 100* X[mix] / np.sum(X[mix], axis=1).mean()
-        X = pd.concat((X[set(X.columns)-set(X_mix.columns)], X_mix), axis=1)
-        #print(X[self.X_start.columns])
-        Results = self.predict(X[self.X_start.columns])
-
-        return var, X, Results
+        Ternary_X = pd.DataFrame(np.hstack((Arr, Bc_set_values,Bc_set_mix_values )), columns = var + set_var + set_mix_var)
+        
+        Results = self.predict(Ternary_X[self.X_start.columns])
+        
+        
+        return var, Ternary_X[self.X_start.columns], Results
+        
 
     def TM_plot(self, experimental_domain: dict, mix: list = None, alpha: list=None, size: int = 1000, random_state: int=None, ncontours: int=20):
         #generate the accurate data to be plot
         if mix is None:
             if self.with_fit:
                 mix = self.mix
-        var, X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
+        var, Ternary_X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
         
+        plotted_var = np.divide(Ternary_X[var], Ternary_X[var].sum(axis=1).values.reshape(-1,1)) * 100
+
         #plot the ternary contour for each targets
         for res in results:
-            fig = ff.create_ternary_contour(np.array(X[var]).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
+            fig = ff.create_ternary_contour(np.array(plotted_var).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
             fig.show()
         return self
     
@@ -860,36 +956,41 @@ class LBM_Regression:
                 raise ValueError('')
         
         #List the variables to plot in the model
-        features_to_plot = self.__extract_features(experimental_domain)
+        screened_var, *others = self.__extract_features(experimental_domain)
         
         #generate the data that will be plotted
         X_complete = self.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
-
+        a, b = np.meshgrid(X_complete[screened_var[0]].values, X_complete[screened_var[1]].values)
+        
+        Plot_df= pd.DataFrame(np.ones(len(a.ravel()), X.complete.shape[1]), columns=X_complete.columns)
         #Set the fixed variables to the desired value
         Arr=[]
         Arr_name=[]
-        for key in (set(experimental_domain.keys())-set(features_to_plot)):
+        for key in (set(experimental_domain.keys())-set(screened_var)):
             if not isinstance(experimental_domain[key][0], (int, float)):
                 Arr.append(0)
             else:
                 Arr.append(experimental_domain[key][0])
             Arr_name.append(key)
-        X_complete[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
-        print(X_complete.describe())
+        
+        #fill the columns with the fixed values
+        Plot_df[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
+        #print(X_complete.describe())
         
         #Compute the output values of the data
-        Y = self.predict(X_complete[self.X_start.columns])
+        Y = self.predict(Plot_df[self.X_start.columns])
 
         #Plot the surface for each target
-        a,b = X_complete.iloc[:, 0], X_complete.iloc[:,1]
+        a,b = Plot_df[screened_var[0]].values, Plot_df[screened_var[0]].values
         for c in Y:
 
-            fig = plt.figure(figsize=(14,9))    
+            fig = plt.figure(figsize=(40,40))
             ax = plt.axes(projection='3d')
             Cmap = plt.get_cmap('viridis')
 
-            Z = Y[c].values.tolist()            
-            surf = ax.plot_trisurf(a.values.tolist(), b.values.tolist(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
+            Z = np.array(Y[c]).ravel()            
+            surf = ax.plot_trisurf(a.ravel(), b.ravel(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
+            
             fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
             ax.set_xlabel(f'{a.name}')
             ax.set_ylabel(f'{b.name}')
@@ -897,3 +998,40 @@ class LBM_Regression:
             ax.set_title(f'{c}=f({a.name, b.name}')
                     
             fig.show()
+    
+    def pareto_frontier(res, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
+
+        """
+        according to: Jamie Bull | jamiebull1@gmail.com
+        https://oco-carbon.com/metrics/find-pareto-frontiers-in-python/
+        """
+        # Sort the list in either ascending or descending order of X
+        if target[0]=='maximize':
+            maxX = False
+        
+        if len(objectives) > 2:
+            raise ValueError('Length of "objectives" should be 2.')
+
+        myList = sorted([[res[objectives[0]][i], res[objectives[0]][i]] for i in range(len(res[objectives[0]]))], reverse=maxX)
+    # Start the Pareto frontier with the first value in the sorted list
+        p_front = [myList[0]]    
+    # Loop through the sorted list
+        for pair in myList[1:]:
+            if target[1]: 
+                if pair[1] >= p_front[-1][1]: # Look for higher values of Y…
+                    p_front.append(pair) # … and add them to the Pareto frontier
+            else:
+                if pair[1] <= p_front[-1][1]: # Look for lower values of Y…
+                    p_front.append(pair) # … and add them to the Pareto frontier
+    # Turn resulting pairs back into a list of Xs and Ys
+        p_frontX = [pair[0] for pair in p_front]
+        p_frontY = [pair[1] for pair in p_front]
+
+        if plot:
+            plt.scatter(res[objectives[0]], res[objectives[0]], c='lightgrey')
+            #plt.scatter(dff['PredParticle size (nm)'].mask(~mask), dff['PredPDI'].mask(~mask))
+            # Then plot the Pareto frontier on top
+            plt.plot(p_frontX, p_frontY, c='r')
+            plt.show()
+
+        return p_frontX, p_frontY
