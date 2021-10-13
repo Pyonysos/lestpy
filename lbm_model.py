@@ -6,13 +6,18 @@ DEPENDENCIES
 
 
 from pandas.core.frame import DataFrame
+from sklearn import model_selection
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
+
 from mpl_toolkits import mplot3d
 
 from scipy.stats import dirichlet
+
+import statsmodels.api as sm
+from statsmodels.stats import outliers_influence
 
 import inspect
 
@@ -25,6 +30,9 @@ import plotly.figure_factory as ff
 import plotly.express as px
 import pandas as pd
 import numpy as np
+
+from SALib.sample import saltelli
+from SALib.analyze import sobol
 
 import time
 
@@ -263,10 +271,10 @@ class LBM_Regression:
                 for interaction in interaction_list:
                     if i != j:
                         #changer en numpy
-                        new_X = pd.concat((new_X, interaction(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0) ).compute()), axis =1)
+                        new_X = pd.concat((new_X, eval(interaction)(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0) ).compute()), axis =1)
                     else:
                         if not interaction in [Difference_X_et_Y_forte, X_comme_Y]:
-                            new_X = pd.concat((new_X, interaction(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0)).compute()), axis =1)
+                            new_X = pd.concat((new_X, eval(interaction)(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0)).compute()), axis =1)
         
         self.with_interactions = True
                             
@@ -462,10 +470,10 @@ class LBM_Regression:
         return desirability
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list =[X_fort_Quand_Y_faible_Et_Inversement, X_fort_Ou_Y_fort, X_fort_Ou_Y_faible, 
-                                    X_et_Y_forts,X_fort_et_Y_faible, X_fort_si_Y_fort, X_fort_si_Y_faible, 
-                                    X_fort_si_Y_moyen, X_moyen_si_Y_fort, Ni_X_ni_Y_extremes, X_Y_moyens, 
-                                    X_comme_Y, Somme_X_et_Y_forte, Difference_X_et_Y_forte]):
+                  interaction_list: list =['X_fort_Quand_Y_faible_Et_Inversement', 'X_fort_Ou_Y_fort', 'X_fort_Ou_Y_faible', 
+                                    'X_et_Y_forts,X_fort_et_Y_faible', 'X_fort_si_Y_fort', 'X_fort_si_Y_faible', 
+                                    'X_fort_si_Y_moyen', 'X_moyen_si_Y_fort', 'Ni_X_ni_Y_extremes', 'X_Y_moyens', 
+                                   ' X_comme_Y', 'Somme_X_et_Y_forte', 'Difference_X_et_Y_forte']):
         """
         transform method :
         
@@ -582,18 +590,16 @@ class LBM_Regression:
             self.model[i]['nb_predictor'] = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
             self.model[i]['model_final'] = LinearRegression()
                 
-            self.model[i]['model_final'].fit(self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1],  y[i])
-            self.model[i]['y_pred'] = self.model[i]['model_final'].predict(self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1])
-                
-            coefficients = np.array(self.model[i]['model_final'].coef_).reshape(len(self.model[i]['model_final'].coef_), 1)
-            print(f'MODELISATION OF THE TARGET {y[i].name}', '\n' , 
-                  f'{y[i].name} is high if :', '\n', 
-                  pd.concat((pd.DataFrame(coefficients.round(3), columns= ['coefficients']), 
-                             pd.DataFrame(np.array(self.model[i]['selected_features'])[:, :-1], columns=['interactions', 'corrCoef_'])), axis=1).dropna(axis=0), 
-                  f'model intercept : {self.model[i]["model_final"].intercept_.round(3)}', "\n", 
-                  sep="\n")
-            end = time.time()
-            print(f'fit method computed in {round(end-start, 3)} seconds')
+            data = pd.concat((self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1], pd.DataFrame(np.ones(y[i].shape), columns=['intercept'])), axis=1)
+            model = sm.OLS(y[i], data)
+            self.model[i]['model_final'] = model.fit()
+            print(self.model[i]['model_final'].summary())
+            
+            self.model[i]['y_pred'] = self.model[i]['model_final'].predict(data)
+            
+            
+        end = time.time()
+        print(f'fit method computed in {round(end-start, 3)} seconds')
         self.with_fit = True
         return self
 
@@ -668,20 +674,25 @@ class LBM_Regression:
             variable_instant_X = pd.DataFrame(var_X, columns=Denomin.columns.tolist())
 
             #computation with the coefficients
-            self.model[i]['y_pred'] = pd.DataFrame(np.dot(variable_instant_X, self.model[i]['model_final'].coef_.reshape(-1,1)) + np.array(self.model[i]['model_final'].intercept_).reshape(1,1), columns=[f'Pred{i}'])
+            
+            predictions = np.dot(variable_instant_X, self.model[i]['model_final'].params[:-1])
+            predictions = predictions + self.model[i]['model_final'].params[-1]
+            
+            self.model[i]['y_pred'] = pd.DataFrame(predictions , columns=[f'Pred{i}'])
             self.y_pred = pd.concat((self.y_pred, self.model[i]['y_pred']), axis=1)
         
         return self.y_pred
     
     def features_analysis(self, X):
+        
         self.experimental_domain = {}
         
         for feature in X.columns.tolist():
-            #print(set([int(num) for num in X[feature].unique()]))
+
             if len(X[feature].unique()) == len(set([int(num) for num in X[feature].values])):
-            #(len(X[feature].unique()) < 6 ) or ((len(X[feature].unique()) / X.shape[0] ) < 0.05) or X[feature].dtype is int :
                 vartype = 'discrete'
                 varlist = X[feature].unique().tolist()
+            
             else:
                 vartype = 'continuous'
                 varlist = None
@@ -709,7 +720,7 @@ class LBM_Regression:
         for var in remaining_features:
             if experimental_domain[var][4] == 'discrete':
                 #create a random array of the discrete values
-                exploration_array = np.random.choice(experimental_domain[var][2], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
+                exploration_array = np.random.choice(experimental_domain[var][3], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
             elif experimental_domain[var][4] == 'continuous':
                 #create a random array of the discrete values
                 rng = np.random.default_rng()
@@ -764,8 +775,11 @@ class LBM_Regression:
 
                 #rendu
             res = pd.concat((sample, prediction, desirability), axis=1)
-            print("Mean of the 5 best results", np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), "Best result", np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3), sep='\n\n')
-            print('Sample description:', sample.describe().round(2), sep='\n\n')
+            
+            output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3)), axis=1)
+            output.columns = ['Mean of the 5 best results', 'Best result']
+            
+            print(output)
             
             self.with_optimization = True
             return res   
@@ -777,19 +791,6 @@ class LBM_Regression:
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
         print(stats)
         return
-    
-    def score(self, X, y):
-        return
-    
-    
-    """
-    def residues_hist(self, y):
-        plt.hist(y-self.model[y.name]['y_pred'], bins=10)
-        plt.xlabel('residual distance')
-        plt.ylabel('observation number')
-        plt.title('Distribution of the residuals')
-        return
-    """
 
     def residues_hist(self, y):
         plt.scatter(y, self.model[y.name]['y_pred']-y)
@@ -825,14 +826,16 @@ class LBM_Regression:
         for i in y:
             print(i)
             self.fitting_score(y[i])
-            plt.figure(figsize=(15,10))
-            plt.subplot(2, 2, 1)
+            plt.figure()
             self.fit_scatter(y[i])
-            plt.subplot(2, 2, 3)
+            plt.show()
+            plt.figure()
             self.residues_hist(y[i])
-            plt.subplot(2, 2, 4)
+            plt.show()
+            plt.figure()
             self.metrics_curve(y[i])
-            plt.suptitle('Overview of the modelisation')
+            plt.show()
+            #plt.suptitle('Overview of the modelisation')
         return
 
     
@@ -999,7 +1002,7 @@ class LBM_Regression:
                     
             fig.show()
     
-    def pareto_frontier(res, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
+    def pareto_frontier(self, res, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
 
         """
         according to: Jamie Bull | jamiebull1@gmail.com
@@ -1007,31 +1010,98 @@ class LBM_Regression:
         """
         # Sort the list in either ascending or descending order of X
         if target[0]=='maximize':
-            maxX = False
+            maxX = True
+        elif target[0]=='minimize':
+            maxX= False
+
+        maxY = False if target[1] == 'minimize' else True
         
         if len(objectives) > 2:
             raise ValueError('Length of "objectives" should be 2.')
 
-        myList = sorted([[res[objectives[0]][i], res[objectives[0]][i]] for i in range(len(res[objectives[0]]))], reverse=maxX)
-    # Start the Pareto frontier with the first value in the sorted list
+        myList = sorted([[res[objectives[0]][i], res[objectives[1]][i]] for i in range(len(res[objectives[0]]))], reverse=maxX)
+        # Start the Pareto frontier with the first value in the sorted list
         p_front = [myList[0]]    
-    # Loop through the sorted list
+        # Loop through the sorted list
         for pair in myList[1:]:
-            if target[1]: 
+            if maxY: 
                 if pair[1] >= p_front[-1][1]: # Look for higher values of Y…
                     p_front.append(pair) # … and add them to the Pareto frontier
             else:
                 if pair[1] <= p_front[-1][1]: # Look for lower values of Y…
                     p_front.append(pair) # … and add them to the Pareto frontier
-    # Turn resulting pairs back into a list of Xs and Ys
+        # Turn resulting pairs back into a list of Xs and Ys
         p_frontX = [pair[0] for pair in p_front]
         p_frontY = [pair[1] for pair in p_front]
 
+        mask = res[objectives[0]].isin(p_frontX)
+
         if plot:
-            plt.scatter(res[objectives[0]], res[objectives[0]], c='lightgrey')
-            #plt.scatter(dff['PredParticle size (nm)'].mask(~mask), dff['PredPDI'].mask(~mask))
+            plt.scatter(res[objectives[0]], res[objectives[1]], alpha=0.5, c='lightgrey', label='trials')
+            plt.scatter(res[objectives[0]].mask(~mask), res[objectives[1]].mask(~mask), label='undominated trials')
             # Then plot the Pareto frontier on top
-            plt.plot(p_frontX, p_frontY, c='r')
+            plt.plot(p_frontX, p_frontY, c='r', label='pareto front')
+            plt.xlabel(res[objectives[0]].name)
+            plt.ylabel(res[objectives[1]].name)
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
             plt.show()
 
         return p_frontX, p_frontY
+    
+    def sensibility_analysis(self, experimental_domain: dict, plot: bool = True):
+        
+        Sobol_list = []
+
+        problem = {
+            'num_vars': len(experimental_domain),
+            'names' : list(experimental_domain.keys()),
+            'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
+        }
+        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns=self.X.columns)
+        predictions = self.predict(param_values)
+        
+        for c in predictions:
+            Si = sobol.analyze(problem, np.array(predictions[c]))
+            Sobol_list.append(Si)
+            t, fo, so = Si.to_df()
+
+            fo_name = [str(n) for n in fo.index.tolist()]
+            so_name = [str(n) for n in so.index.tolist()]
+            t_name = [str(n) for n in t.index.tolist()]
+
+            if plot:
+                fig, (ax1, ax2, ax3) = plt.subplots(3, sharex =True)
+                ax1.barh(fo_name,fo['S1'].values.round(3) , 0.5, color='cornflowerblue', label='Parameters', xerr=fo['S1_conf'].values)
+                ax2.barh(so_name, so['S2'].values.round(3), 0.5, color='lightsteelblue', label='Interactions', xerr=so['S2_conf'].values)
+                ax3.barh(t_name,t['ST'].values.round(3), 0.5, color='royalblue', label='Total', xerr=(t['ST_conf'].values))
+                fig.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
+                plt.show()
+
+        return Sobol_list
+
+    def outliers_influence(self, plot: bool =True):
+        frame_list=[]
+        for i in self.y:
+            outliers = outliers_influence.OLSInfluence(self.model[i]['model_final'])
+            frame_list.append(outliers.summary_frame())
+            threshold = 4/outliers.summary_frame().shape[0]
+            
+            print(f'threshold (4/n) = {round(threshold,3)}' )
+            outliers_list= []
+            for n in range(0,outliers.summary_frame().shape[0]):
+                if outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
+                    outliers_list.append((n, outliers.summary_frame().at[n, 'cooks_d']))
+            print(f'potential outliers : {outliers_list}')
+            if plot:
+                #plt.figure()
+                plt.scatter(range(0,outliers.summary_frame().shape[0]), outliers.summary_frame()['cooks_d'], label=i)
+            print(outliers.summary_table())
+            
+        plt.plot([0, outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
+        plt.xlabel('Observation indices')
+        plt.ylabel('Cook\'s distance')
+        plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
+        plt.show()
+        
+        return frame_list
+
