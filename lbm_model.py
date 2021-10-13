@@ -837,7 +837,7 @@ class LBM_Regression:
             plt.show()
             #plt.suptitle('Overview of the modelisation')
         return
-    
+
     
     def print_in_file(self, title: str ='title'):
                 
@@ -882,6 +882,8 @@ class LBM_Regression:
 
 
         document.save(f'{title}.docx')
+=======
+    def print_in_file(self):
         return #fichier avec données enregistrées et formatées 
 
     def __extract_features(self, experimental_domain: dict):
@@ -906,7 +908,7 @@ class LBM_Regression:
             return screened_var, set_mix_var, set_mix_values, set_var, set_values
 
         except ValueError:
-            print('To plot a ternary diagram please set 3 variable values to None')
+            print('To plot a ternary diagram please set 3 variable values to "toPlot"')
         
     def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
         #list the features to plot
