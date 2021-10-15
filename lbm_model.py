@@ -36,19 +36,22 @@ from SALib.analyze import sobol
 
 import time
 
-
+#interaction_dict will store all the data concerning the use of interactions
 interaction_dict={}
 
 """
-**************************************************************************************************************************
-INTERACTION CLASSES
+Definition of the interactions
+"""
+class Interaction:
+"""
+Interaction class
+
 interactions are mathematical fonctions that aim to describe the logical interactions that can occur between two parameters on an output value.
 the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
 Then it will build model using the fewest number of features or their interactions that best explains the response.
 As the interactions describes reel physical effects, the user have the control to exclude interactions that are not relevant in their case study.
 **************************************************************************************************************************
 """
-class Interaction:
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
         self.y = y
