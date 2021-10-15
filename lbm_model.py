@@ -882,7 +882,7 @@ class LBM_Regression:
 
 
         document.save(f'{title}.docx')
-=======
+
     def print_in_file(self):
         return #fichier avec données enregistrées et formatées 
 
