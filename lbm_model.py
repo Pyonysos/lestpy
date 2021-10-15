@@ -41,7 +41,11 @@ interaction_dict={}
 
 """
 **************************************************************************************************************************
-INTERACTION CLASSES 
+INTERACTION CLASSES
+interactions are mathematical fonctions that aim to describe the logical interactions that can occur between two parameters on an output value.
+the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
+Then it will build model using the fewest number of features or their interactions that best explains the response.
+As the interactions describes reel physical effects, the user have the control to exclude interactions that are not relevant in their case study.
 **************************************************************************************************************************
 """
 class Interaction:
