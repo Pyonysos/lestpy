@@ -46,7 +46,7 @@ class Interaction:
 """
 Interaction class
 
-interactions are mathematical fonctions that aim to describe the logical interactions that can occur between two parameters on an output value.
+interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters on an output value.
 the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
 Then it will build model using the fewest number of features or their interactions that best explains the response.
 As the interactions describes reel physical effects, the user have the control to exclude interactions that are not relevant in their case study.
@@ -251,6 +251,40 @@ CORICO ALGORHITHM
 """
 
 class LBM_Regression:
+  """
+  Lesty Buat-Ménard Regression.
+    LBM_Regression calculate interactions of two variables, selects the most relevant ones and fits a linear model with coefficients w = (w1, ..., wp)
+    to minimize the residual sum of squares between the observed targets in
+    the dataset, and the targets predicted by the linear approximation.
+    Parameters
+    ----------
+    fit_intercept : bool, default=True
+        Whether to calculate the intercept for this model. If set
+        to False, no intercept will be used in calculations
+        (i.e. data is expected to be centered).
+    normalize : bool, default=False
+        This parameter is ignored when ``fit_intercept`` is set to False.
+        If True, the regressors X will be normalized before regression by
+        subtracting the mean and dividing by the l2-norm.
+        If you wish to standardize, please use
+        :class:`~sklearn.preprocessing.StandardScaler` before calling ``fit``
+        on an estimator with ``normalize=False``.
+        .. deprecated:: 1.0
+           `normalize` was deprecated in version 1.0 and will be
+           removed in 1.2.
+    copy_X : bool, default=True
+        If True, X will be copied; else, it may be overwritten.
+    n_jobs : int, default=None
+        The number of jobs to use for the computation. This will only provide
+        speedup for n_targets > 1 and sufficient large problems.
+        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
+        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
+        for more details.
+    positive : bool, default=False
+        When set to ``True``, forces the coefficients to be positive. This
+        option is only supported for dense arrays.
+
+  """
     def __init__(self):
         self.with_optimization = False
         self.with_interactions = False
