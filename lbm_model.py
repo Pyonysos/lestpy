@@ -256,34 +256,6 @@ class LBM_Regression:
     LBM_Regression calculate interactions of two variables, selects the most relevant ones and fits a linear model with coefficients w = (w1, ..., wp)
     to minimize the residual sum of squares between the observed targets in
     the dataset, and the targets predicted by the linear approximation.
-    Parameters
-    ----------
-    fit_intercept : bool, default=True
-        Whether to calculate the intercept for this model. If set
-        to False, no intercept will be used in calculations
-        (i.e. data is expected to be centered).
-    normalize : bool, default=False
-        This parameter is ignored when ``fit_intercept`` is set to False.
-        If True, the regressors X will be normalized before regression by
-        subtracting the mean and dividing by the l2-norm.
-        If you wish to standardize, please use
-        :class:`~sklearn.preprocessing.StandardScaler` before calling ``fit``
-        on an estimator with ``normalize=False``.
-        .. deprecated:: 1.0
-           `normalize` was deprecated in version 1.0 and will be
-           removed in 1.2.
-    copy_X : bool, default=True
-        If True, X will be copied; else, it may be overwritten.
-    n_jobs : int, default=None
-        The number of jobs to use for the computation. This will only provide
-        speedup for n_targets > 1 and sufficient large problems.
-        ``None`` means 1 unless in a :obj:`joblib.parallel_backend` context.
-        ``-1`` means using all processors. See :term:`Glossary <n_jobs>`
-        for more details.
-    positive : bool, default=False
-        When set to ``True``, forces the coefficients to be positive. This
-        option is only supported for dense arrays.
-
   """
     def __init__(self):
         self.with_optimization = False
@@ -301,10 +273,21 @@ class LBM_Regression:
                 3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
                 """)    
     
-    def __autointeraction_param(self, allow_autointeraction):        
+    def __autointeraction_param(self, allow_autointeraction):    #obsolete    
         return 1 if allow_autointeraction==True else 0
     
-    def __compute_interaction(self, X, autointeraction, interaction_list):
+    def __compute_interaction(self, X, autointeraction: bool, interaction_list: list):
+      """
+      __compute_interaction
+      compute all the listed interactions
+      
+      params:
+        X: Pandas dataframe of features
+        allow_autointeraction: bool, set to True, will compute interactions of a variable with itself. Set to False if you want to avoid self interaction
+        interaction_list: list, names (or dict but not yet implemented) of the interactions to be calculated
+        
+      returns: dataframe of the features and all the calculated interactions
+      """
         new_X = X.reset_index(drop=True)
         for i in range(X.shape[1]):
             for j in range(i+1-autointeraction, X.shape[1]):
@@ -320,8 +303,18 @@ class LBM_Regression:
                             
         return new_X
     
-    def __rescale_data(self, X, y, scaler):
+    def __rescale_data(self, X, y, scaler: str):
+        """
+        __rescale_data:
+        scale the features with the specified method
         
+        params:
+        X: dataframe, dataframe of features
+        y: dataframe, dataframe of response. useless to specify. for convenience only
+        scaler: str, transformer to use to scale the data before the calculation of interactions
+        
+        returns: object
+        """
         #normalisation des données
         if scaler =='robust':
             self.transformer = RobustScaler()
