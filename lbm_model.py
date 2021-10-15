@@ -252,7 +252,7 @@ CORICO ALGORHITHM
 
 class LBM_Regression:
   """
-  Lesty Buat-Ménard Regression.
+  Lesty Buat-Menard Regression.
     LBM_Regression calculate interactions of two variables, selects the most relevant ones and fits a linear model with coefficients w = (w1, ..., wp)
     to minimize the residual sum of squares between the observed targets in
     the dataset, and the targets predicted by the linear approximation.
