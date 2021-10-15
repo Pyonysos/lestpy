@@ -322,6 +322,8 @@ class LBM_Regression:
             self.transformer = MinMaxScaler()
         elif scaler =='standard':
             self.transformer = StandardScaler()
+        else:
+          raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
         
         return self.transformer.fit_transform(X, y)
     
