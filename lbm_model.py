@@ -330,6 +330,8 @@ class LBM_Regression:
     def __variable_instant(self, X):
         """
         transformation of the matrix into a modified unit called "variable/instant"
+        params:
+        returns:
         """
         eye = np.eye(X.shape[0], X.shape[0])
 
