@@ -66,7 +66,7 @@ Interaction class
 interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters on an output value.
 the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
 Then it will build model using the fewest number of features or their interactions that best explains the response.
-As the interactions describes reel physical effects, the user have the control to exclude interactions that are not relevant in their case study.
+As the interactions describes real physical effects, the user have the control to exclude interactions that are not relevant in their case study.
 """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
@@ -93,12 +93,21 @@ As the interactions describes reel physical effects, the user have the control t
             self.y = pd.DataFrame(self.y, name='y')
      
     def compute(self):
-        new_var = pd.DataFrame(self.calc(), columns=[self.name])
-        return new_var
+      """
+      compute the interaction
+      return a dataframe named according to the interaction, with its values
+      """
+        return pd.DataFrame(self.calc(), columns=[self.name])
         
     def display_interaction(self, x=None, y=None):
       """
       display_interaction is a method to help visualize how the interaction is modeled by ifs function. if x and y are not given, it creates vectors of hundred numbers between -1 and 1 and calculates the values of the interaction.
+      x : pandas dataframe, values of feature x
+      y : pandas dataframe, values of feature y
+      
+      plot a surface of the interaction on x and y
+      
+      return None
       """
       if x is None:
         x= np.linspace(-1, 1, 100)
