@@ -77,7 +77,19 @@ As the interactions describes reel physical effects, the user have the control t
      
     def compute(self):
         new_var = pd.DataFrame(self.calc(), columns=[self.name])
-        return new_var   
+        return new_var
+        
+    def display_interaction(self, x=None, y=None):
+      if x is None:
+        x= np.linspace(-1, 1, 100)
+      if y is None:
+        y= np.linspace(-1, 1, 100)
+        
+      x, y = np.meshgrid(x, y)
+      x=pd.DataFrame(x.ravel(), columns=["x"])
+      y=pd.DataFrame(y.ravel(), columns=["y"])
+      z = self.calc()
+      
 
 class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
