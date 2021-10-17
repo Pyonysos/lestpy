@@ -37,6 +37,7 @@ from SALib.analyze import sobol
 import time
 
 def Plot_surface(a,b,c, **kwargs):
+  
   if hasattr(kwargs, "cmap"):
     cmap=kwargs['cmap']
   else:
@@ -96,6 +97,9 @@ As the interactions describes reel physical effects, the user have the control t
         return new_var
         
     def display_interaction(self, x=None, y=None):
+      """
+      display_interaction is a method to help visualize how the interaction is modeled by ifs function. if x and y are not given, it creates vectors of hundred numbers between -1 and 1 and calculates the values of the interaction.
+      """
       if x is None:
         x= np.linspace(-1, 1, 100)
       if y is None:
