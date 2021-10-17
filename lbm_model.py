@@ -36,6 +36,22 @@ from SALib.analyze import sobol
 
 import time
 
+def Plot_surface(a,b,c, **kwargs):
+  if hasattr(kwargs, "cmap"):
+    cmap=kwargs['cmap']
+  else:
+    cmap='Viridis'
+  surf = ax.plot_trisurf(a.ravel(), b.ravel(), c, cmap=cmap, antialiased=True, edgecolor='none')
+            
+            fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
+            ax.set_xlabel(f'{a.name}')
+            ax.set_ylabel(f'{b.name}')
+            ax.set_zlabel(f'{c.name}')
+            ax.set_title(f'Interaction: {c.name}')
+                    
+            fig.show()
+  return
+
 #interaction_dict will store all the data concerning the use of interactions
 interaction_dict={}
 
@@ -89,6 +105,7 @@ As the interactions describes reel physical effects, the user have the control t
       x=pd.DataFrame(x.ravel(), columns=["x"])
       y=pd.DataFrame(y.ravel(), columns=["y"])
       z = self.calc()
+      Plot_surface(x,y,z)
       
 
 class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
