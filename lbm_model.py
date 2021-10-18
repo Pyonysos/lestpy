@@ -240,7 +240,7 @@ class Difference_X_et_Y_forte(Interaction):
 
 """
 **************************************************************************************************************************
-CORICO ALGORHITHM
+REGRESSION ALGORHITHM
 **************************************************************************************************************************
 """
 
@@ -255,19 +255,17 @@ class LBM_Regression:
     
     def bibliography(self):
         print("""
-                Bibliography :
+                Bibliography on which is based the project:
                 1. Lesty, Michel, et P Buat-Ménard. "La synthèse géométrique des corrélations multidimensionnelles". Les Cahiers de l’Analyse des données VII, no 3 (1982): 355‑70.
                 2. Lesty, Michel. "Une nouvelle approche dans le choix des régresseurs de la régression multiple en présence d’interactions et de colinéarités". revue Modulad 22 (1999): 41‑77.
                 3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
                 """)    
     
-    def __autointeraction_param(self, allow_autointeraction):        
-        return 1 if allow_autointeraction==True else 0
-    
-    def __compute_interaction(self, X, autointeraction, interaction_list):
+    def __compute_interaction(self, X, allow_autointeraction, interaction_list):
         new_X = X.reset_index(drop=True)
+        n = 1 if allow_autointeraction==True else 0
         for i in range(X.shape[1]):
-            for j in range(i+1-autointeraction, X.shape[1]):
+            for j in range(i+1-n, X.shape[1]):
                 for interaction in interaction_list:
                     if i != j:
                         #changer en numpy
@@ -292,6 +290,23 @@ class LBM_Regression:
         
         return self.transformer.fit_transform(X, y)
     
+    def __variable_instant_transform(self, X, coef, denomin,L=None):
+        """
+        transformation of __variable_instant 
+        """
+        #print(Coef.shape, denomin.shape, X.shape, self.Shape)
+        if L is None:
+            L =[n for n in range(0, len(denomin))]
+        
+        """
+        Coef = self.Coef[:,L] 
+        """
+        Denomin = pd.DataFrame(denomin).iloc[L].transpose()
+        Denominator = np.array(Denomin).reshape(1, Denomin.shape[1])
+        
+        #print(Coef.shape, X.shape, self.Shape)
+        return np.divide(np.subtract(np.array(X)*self.Shape, coef[:,L]), Denominator)
+    
     def __variable_instant(self, X):
         """
         transformation of the matrix into a modified unit called "variable/instant"
@@ -308,11 +323,12 @@ class LBM_Regression:
         self.with_variable_instant = True
         self.Shape = X.shape[0]
         
-        variable = np.divide(np.subtract(X*self.Shape, self.Coef), self.denomin)
+        #variable = np.divide(np.subtract(X*self.Shape, self.Coef), self.denomin)
+        variable = self.__variable_instant_transform(X, self.Coef, self.denomin)
 
         return variable
     
-    def __unscale_data(self, rescaled_X):
+    def __variable_instant_inverse_transform(self, rescaled_X):
         """
         inverse transformation of __variable_instant 
         """
@@ -498,14 +514,8 @@ class LBM_Regression:
         self.X = X.reset_index(drop=True)
         self.X_start = self.X
         self.y = y.reset_index(drop=True)
-        
-        #Step1: set autointeraction
-        try:
-            autointeraction = self.__autointeraction_param(allow_autointeraction)
-        except:
-            raise NotImplementedError('autointeraction failed')
        
-        #Step2: Rescale data
+        #Step1: Rescale data
         try:
             self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
         except:
@@ -513,7 +523,7 @@ class LBM_Regression:
     
         #Step2: compute new features
         try:
-            self.features = self.__compute_interaction(self.X, autointeraction, interaction_list)
+            self.features = self.__compute_interaction(self.X, allow_autointeraction, interaction_list)
         except: 
             raise NotImplementedError('computation of the interactions failed')
         
@@ -559,6 +569,7 @@ class LBM_Regression:
         #Mesure du temps de calcul
         start = time.time()
         
+        #check if all parameters are correctly input
         if type(threshold) is not float:
             raise TypeError('threshold must be a float between 0 and 1')
         
@@ -581,23 +592,31 @@ class LBM_Regression:
             self.__compute_correlation_matrix(self.rescaled_features,  y[i])
             
             for reg in range(max_regressors_nb):
-                #identification de la meilleure interaction
+                #identification of the best interaction of this loop
                 self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
+                #compute the partial correlation
                 self.corr_X = self.__partial_correlations(self.corr_X, self.model[i]['selected_features'][-1][0])
-
+                #save values of Q² for model selection 
                 self.model[i]['metrics'].append(self.__model_evaluation(self.model[i]['results']))
-                
+
+            #identify the best number of predictors by maximizing the Q² value
             self.model[i]['nb_predictor'] = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
-            self.model[i]['model_final'] = LinearRegression()
-                
+            #obsolete
+            #self.model[i]['model_final'] = LinearRegression()
+
+            #add a column of 1 (intercept) to the data for model fitting to responses using statsmodel.OLS    
             data = pd.concat((self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1], pd.DataFrame(np.ones(y[i].shape), columns=['intercept'])), axis=1)
+            #fitting predictors to responses with sm.OLS
             model = sm.OLS(y[i], data)
             self.model[i]['model_final'] = model.fit()
+            #print results
             print(self.model[i]['model_final'].summary())
             
+            #predict data
             self.model[i]['y_pred'] = self.model[i]['model_final'].predict(data)
             
-            
+
+        #print the amount of time spent to compute the model    
         end = time.time()
         print(f'fit method computed in {round(end-start, 3)} seconds')
         self.with_fit = True
@@ -623,62 +642,69 @@ class LBM_Regression:
         transformed_X_start = pd.DataFrame(self.transformer.transform(self.X_start), columns=X.columns.tolist())
         self.y_pred = pd.DataFrame()
         
+        #transform y to DataFrame and avoid pandas.Series
         try:
             y = self.y.to_frame()
         except:
             y = self.y
         
+        #loop through the models for each responses
         for i in y:
             new_X = None
         
-            #computation of the selected and enginered features of the model
+            #transform the features to the selected predictors of the model in the fit method
             for element in self.model[i]['selected_features'][:self.model[i]['nb_predictor']]:
                 try :
+                    #call the right interaction
                     func = interaction_dict[element[0]]['interaction']
                     x_df= transformed_X[interaction_dict[element[0]]["x"].name]
                     y_df= transformed_X[interaction_dict[element[0]]["y"].name]
 
+                    #call the max and min from the data on which the model was fitted
+                    # otherwise if the new data to predict have not the same min and max for each feature the responses will be greatly modified
                     max_x = np.max(transformed_X_start[interaction_dict[element[0]]["x"].name])
                     min_x = np.min(transformed_X_start[interaction_dict[element[0]]["x"].name])
                     max_y = np.max(transformed_X_start[interaction_dict[element[0]]["y"].name])
                     min_y = np.min(transformed_X_start[interaction_dict[element[0]]["y"].name])
+
+                    #compute the interaction values
                     col = eval(func)(x_df, y_df, max_x=max_x, min_x=min_x, max_y=max_y, min_y=min_y).compute()
                 except KeyError:
+                    #keep the feature unmodified if the modelisation found it relevant so
                     col = transformed_X[element[0]]
             
                 finally:
+                    #some 'infinity values' appear during calculation because of value very close to zero 
                     pd.options.mode.use_inf_as_na = True
                     
                     if any(col.isna()):
                         col[col.isna()] = 0
                     
-                    
-
+                    #the new frame of predictors
                     if 'new_X' not in locals():
                         new_X = col
                     else:
+                        #append the new calculated colums
                         new_X = pd.concat((new_X, col), axis=1)
             
-            #transformation to acurate scale
-            #L = position of the interaction in the Coef and denomin vectors
-            L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.model[i]['nb_predictor']])[:,-1]]
-            
-            Coef = self.Coef[:,L]
-            
-            Denomin = pd.DataFrame(self.denomin).iloc[L].transpose()
-            
-            Denominator = np.array(Denomin).reshape(1, Denomin.shape[1])
+            #transform the newly generated frame to acurate scale
+            #L = mask to locate the position of the interaction in the Coef and denomin vectors
+            self.L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.model[i]['nb_predictor']])[:,-1]]
 
-            var_X = np.divide(np.subtract(np.array(new_X)*self.Shape, Coef), Denominator)
-
-            variable_instant_X = pd.DataFrame(var_X, columns=Denomin.columns.tolist())
-
-            #computation with the coefficients
+            #transform to the scale
+            var_X =self.__variable_instant_transform(new_X, self.Coef, self.denomin, self.L)
             
+            #transform to dataFrame
+            variable_instant_X = pd.DataFrame(var_X, columns=self.model[i]['selected_features'][:self.model[i]['nb_predictor']])
+            
+
+            #compute with the model coefficients and intercept
             predictions = np.dot(variable_instant_X, self.model[i]['model_final'].params[:-1])
             predictions = predictions + self.model[i]['model_final'].params[-1]
-            
-            self.model[i]['y_pred'] = pd.DataFrame(predictions , columns=[f'Pred{i}'])
+
+            #save data in in y_pred varaible
+            self.model[i]['y_pred'] = pd.DataFrame(predictions , columns=[f'Predicted {i}'])
+            #Append the dataFrame with all the predicted response
             self.y_pred = pd.concat((self.y_pred, self.model[i]['y_pred']), axis=1)
         
         return self.y_pred
@@ -697,7 +723,16 @@ class LBM_Regression:
                 vartype = 'continuous'
                 varlist = None
             
-            self.experimental_domain[X[feature].name] = [None, X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
+            #self.experimental_domain[X[feature].name] = [None, X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
+            self.experimental_domain[X[feature].name] = {
+                'min_value' : X[feature].min(axis=0),
+                'max_value' : X[feature].max(axis=0),
+                'var_type' : vartype,
+                'list of values' : varlist,
+                'fix_to_value' : None,
+                'plot': False
+                }
+
         
         self.mix=None
         for i in range(0, X.shape[1]):
@@ -710,7 +745,7 @@ class LBM_Regression:
                     self.mixmin = X.iloc[:, i:j].min(axis=0).mean()
                     break
         
-        exp_dom = pd.DataFrame(self.experimental_domain, index=['status','min value', 'max_value', 'values', 'var type'])
+        #exp_dom = pd.DataFrame(self.experimental_domain, index=['status','min value', 'max_value', 'values', 'var type'])
         #print('experimental domain: ', exp_dom, 'mixture: ', self.mix, sep='\n\n' )
 
         return self.experimental_domain, self.mix
@@ -718,17 +753,14 @@ class LBM_Regression:
     def __features_generator(self, remaining_features, experimental_domain, size):
         #create random array respecting the restrictions of the features 
         for var in remaining_features:
-            if experimental_domain[var][4] == 'discrete':
+            if experimental_domain[var]['var_type'] == 'discrete':
                 #create a random array of the discrete values
-                exploration_array = np.random.choice(experimental_domain[var][3], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
-            elif experimental_domain[var][4] == 'continuous':
+                exploration_array = np.random.choice(experimental_domain[var]['list of values'], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
+            elif experimental_domain[var]['var_type'] == 'continuous':
                 #create a random array of the discrete values
                 rng = np.random.default_rng()
-                exploration_array = (experimental_domain[var][2] - experimental_domain[var][1]) * rng.random((size, 1), dtype=np.float64) + experimental_domain[var][1]
-            try:
-                experimental_domain[var][5] = exploration_array
-            except:
-                experimental_domain[var].append(exploration_array)  
+                exploration_array = (experimental_domain[var]['max_value'] - experimental_domain[var]['min_value']) * rng.random((size, 1), dtype=np.float64) + experimental_domain[var]['min_value']
+            experimental_domain[var]['generated values'] = exploration_array
         return experimental_domain
     
     def __mix_features_generator(self, alpha, size, random_state, mix):
@@ -752,7 +784,7 @@ class LBM_Regression:
                 if x is None:
                     x = pd.DataFrame()   
                 #a voir si erreur
-                x = pd.concat((x, pd.DataFrame(experimental_domain[var][5], columns=[var])), axis=1)
+                x = pd.concat((x, pd.DataFrame(experimental_domain[var]['generated values'], columns=[var])), axis=1)
         return x
     
     def optimize(self, experimental_domain:dict=None, target:list=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
@@ -884,67 +916,69 @@ class LBM_Regression:
         document.save(f'{title}.docx')
 
     def print_in_file(self):
-        return #fichier avec données enregistrées et formatées 
+        return #fichier avec données enregistrées et formatées
 
     def __extract_features(self, experimental_domain: dict):
-        screened_var=[]
-        set_mix_var =[]
-        set_mix_values=[]
-        set_var=[]
-        set_values=[]
-        try:
-            for key in experimental_domain.keys():
-                if experimental_domain[key][0] == 'toPlot':
-                    screened_var.append(key)
-                else:
-                    if isinstance(experimental_domain[key][0], (int, float)):
-                        if key in self.mix:
-                            set_mix_var.append(key)
-                            set_mix_values.append(experimental_domain[key][0])
-                        else:
-                            set_var.append(key)
-                            set_values.append(experimental_domain[key][0])
 
-            return screened_var, set_mix_var, set_mix_values, set_var, set_values
+        try:
+            screened_var = [key for key in experimental_domain.keys() if experimental_domain[key]['plot'] == True]
+
+            return screened_var
 
         except ValueError:
-            print('To plot a ternary diagram please set 3 variable values to "toPlot"')
+            print('To plot a ternary diagram please set 3 variable values to None')
         
     def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
         #list the features to plot
-        var, set_mix_var, set_mix_values, set_var, set_values = self.__extract_features(experimental_domain) 
+        var = self.__extract_features(experimental_domain)
+        #generate a dataset
+        Arr = self.__mix_features_generator(alpha, size, random_state, var)
         
-        #generate a dataset and scale to right maximum
-        Arr = (self.mixmax - self.mixmin - sum(set_mix_values)) * self.__mix_features_generator(alpha, size, random_state, var) + self.mixmin
+        #scale the data to the right values
+        df_Arr = (self.mixmax * pd.DataFrame(Arr, columns=var) - self.mixmin)
+
+        #list the feature not plot
+        set_values = []
+        set_values_names = []
+
+        for key, value in experimental_domain.items():
+            if isinstance(experimental_domain[key]['fix_to_value'], (int, float)):
+                set_values.append(value['fix_to_value'])
+                set_values_names.append(key)
+            #if experimental_domain[key][0] is None:
+                
+                
 
         #broadcast the set values to complete the dataset and
         Bc_set_values = np.broadcast_to(np.array(set_values).reshape(1,-1), (size, len(set_values)))
-        Bc_set_mix_values = np.broadcast_to(np.array(set_mix_values).reshape(1,-1), (size, len(set_mix_values)))
+        X = pd.DataFrame(np.hstack((df_Arr, Bc_set_values)), columns = var + set_values_names)
 
-        Ternary_X = pd.DataFrame(np.hstack((Arr, Bc_set_values,Bc_set_mix_values )), columns = var + set_var + set_mix_var)
-        
-        Results = self.predict(Ternary_X[self.X_start.columns])
-        
-        
-        return var, Ternary_X[self.X_start.columns], Results
-        
+        """
+        <!!> Probleme si toutes les variables ne font pas partie d'un plan de mélange !!!
+        """
+        #set the mixture to the acurate sum
+        #print(X)
+        X_mix = 100* X[mix] / np.sum(X[mix], axis=1).mean()
+        X = pd.concat((X[set(X.columns)-set(X_mix.columns)], X_mix), axis=1)
+        #print(X[self.X_start.columns])
+        Results = self.predict(X[self.X_start.columns])
+
+        return var, X, Results
 
     def TM_plot(self, experimental_domain: dict, mix: list = None, alpha: list=None, size: int = 1000, random_state: int=None, ncontours: int=20):
         #generate the accurate data to be plot
         if mix is None:
             if self.with_fit:
                 mix = self.mix
-        var, Ternary_X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
+        var, X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
         
-        plotted_var = np.divide(Ternary_X[var], Ternary_X[var].sum(axis=1).values.reshape(-1,1)) * 100
-
         #plot the ternary contour for each targets
         for res in results:
-            fig = ff.create_ternary_contour(np.array(plotted_var).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
+            fig = ff.create_ternary_contour(np.array(X[var]).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
             fig.show()
         return self
     
-    def RS_plot(self, X: DataFrame = None, Y: DataFrame = None, experimental_domain: dict=None, size: int = 10000):
+    def RS_plot(self, X: DataFrame = None, Y: DataFrame = None, experimental_domain: dict=None, status=None, size: int = 10000):
         #If variables are undefined by user, get the variables that were use for modelling
         if self.with_fit:
             if X is None:
@@ -959,41 +993,35 @@ class LBM_Regression:
                 raise ValueError('')
         
         #List the variables to plot in the model
-        screened_var, *others = self.__extract_features(experimental_domain)
+        features_to_plot = self.__extract_features(experimental_domain)
         
         #generate the data that will be plotted
         X_complete = self.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
-        a, b = np.meshgrid(X_complete[screened_var[0]].values, X_complete[screened_var[1]].values)
-        
-        Plot_df= pd.DataFrame(np.ones(len(a.ravel()), X.complete.shape[1]), columns=X_complete.columns)
+
         #Set the fixed variables to the desired value
         Arr=[]
         Arr_name=[]
-        for key in (set(experimental_domain.keys())-set(screened_var)):
-            if not isinstance(experimental_domain[key][0], (int, float)):
+        for key in (set(experimental_domain.keys())-set(features_to_plot)):
+            if not isinstance(experimental_domain[key]['fix_to_value'], (int, float)):
                 Arr.append(0)
             else:
-                Arr.append(experimental_domain[key][0])
+                Arr.append(experimental_domain[key]['fix_to_value'])
             Arr_name.append(key)
-        
-        #fill the columns with the fixed values
-        Plot_df[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
-        #print(X_complete.describe())
+        X_complete[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
         
         #Compute the output values of the data
-        Y = self.predict(Plot_df[self.X_start.columns])
+        Y = self.predict(X_complete[self.X_start.columns])
 
         #Plot the surface for each target
-        a,b = Plot_df[screened_var[0]].values, Plot_df[screened_var[0]].values
+        a,b = X_complete[features_to_plot[0]], X_complete[features_to_plot[1]]
         for c in Y:
 
-            fig = plt.figure(figsize=(40,40))
+            fig = plt.figure(figsize=(14,9))    
             ax = plt.axes(projection='3d')
             Cmap = plt.get_cmap('viridis')
 
-            Z = np.array(Y[c]).ravel()            
-            surf = ax.plot_trisurf(a.ravel(), b.ravel(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
-            
+            Z = Y[c].values.flatten()
+            surf = ax.plot_trisurf(a.values.flatten(), b.values.flatten(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
             fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
             ax.set_xlabel(f'{a.name}')
             ax.set_ylabel(f'{b.name}')
@@ -1001,6 +1029,7 @@ class LBM_Regression:
             ax.set_title(f'{c}=f({a.name, b.name}')
                     
             fig.show()
+    
     
     def pareto_frontier(self, res, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
 
@@ -1053,11 +1082,13 @@ class LBM_Regression:
         Sobol_list = []
 
         problem = {
-            'num_vars': len(experimental_domain),
-            'names' : list(experimental_domain.keys()),
-            'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
+            'num_vars': len(self.X.columns),
+            'names' : list(self.X.columns),
+            'bounds': [[experimental_domain[n]['min_value'], experimental_domain[n]['max_value']] for n in self.X.columns]
         }
+        print(problem)
         param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns=self.X.columns)
+        print(param_values)
         predictions = self.predict(param_values)
         
         for c in predictions:
@@ -1079,6 +1110,7 @@ class LBM_Regression:
 
         return Sobol_list
 
+    
     def outliers_influence(self, plot: bool =True):
         frame_list=[]
         for i in self.y:
@@ -1104,4 +1136,3 @@ class LBM_Regression:
         plt.show()
         
         return frame_list
-
