@@ -36,15 +36,43 @@ from SALib.analyze import sobol
 
 import time
 
+def Plot_surface(a,b,c, **kwargs):
+    
+    if hasattr(kwargs, "cmap"):
+        cmap=kwargs['cmap']
+    else:
+        cmap='Viridis'
+  
+    fig = plt.figure(figsize=(14,9))    
+    ax = plt.axes(projection='3d')
 
+    surf = ax.plot_trisurf(a.ravel(), b.ravel(), c, cmap=cmap, antialiased=True, edgecolor='none')
+            
+
+
+    fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
+    ax.set_xlabel(f'{a.name}')
+    ax.set_ylabel(f'{b.name}')
+    ax.set_zlabel(f'{c.name}')
+    ax.set_title(f'Interaction: {c.name}')
+    fig.show()
+    return
+
+#interaction_dict will store all the data concerning the use of interactions
 interaction_dict={}
 
 """
-**************************************************************************************************************************
-INTERACTION CLASSES 
-**************************************************************************************************************************
+Definition of the interactions
 """
 class Interaction:
+    """
+    Interaction class
+
+    interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters on an output value.
+    the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
+    Then it will build model using the fewest number of features or their interactions that best explains the response.
+    As the interactions describes real physical effects, the user have the control to exclude interactions that are not relevant in their case study.
+    """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
         self.y = y
@@ -70,8 +98,33 @@ class Interaction:
             self.y = pd.DataFrame(self.y, name='y')
      
     def compute(self):
-        new_var = pd.DataFrame(self.calc(), columns=[self.name])
-        return new_var   
+        """
+        compute the interaction
+        return a dataframe named according to the interaction, with its values
+        """
+        return pd.DataFrame(self.calc(), columns=[self.name])
+        
+    def display_interaction(self, x=None, y=None):
+        """
+        display_interaction is a method to help visualize how the interaction is modeled by ifs function. if x and y are not given, it creates vectors of hundred numbers between -1 and 1 and calculates the values of the interaction.
+        x : pandas dataframe, values of feature x
+        y : pandas dataframe, values of feature y
+        
+        plot a surface of the interaction on x and y
+        
+        return None
+        """
+        if x is None:
+            x= np.linspace(-1, 1, 100)
+        if y is None:
+            y= np.linspace(-1, 1, 100)
+            
+        x, y = np.meshgrid(x, y)
+        x=pd.DataFrame(x.ravel(), columns=["x"])
+        y=pd.DataFrame(y.ravel(), columns=["y"])
+        z = self.calc()
+        Plot_surface(x,y,z)
+      
 
 class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
@@ -245,6 +298,12 @@ REGRESSION ALGORHITHM
 """
 
 class LBM_Regression:
+    """
+    Lesty Buat-Menard Regression.
+        LBM_Regression calculate interactions of two variables, selects the most relevant ones and fits a linear model with coefficients w = (w1, ..., wp)
+        to minimize the residual sum of squares between the observed targets in
+        the dataset, and the targets predicted by the linear approximation.
+    """
     def __init__(self):
         self.with_optimization = False
         self.with_interactions = False
@@ -278,8 +337,18 @@ class LBM_Regression:
                             
         return new_X
     
-    def __rescale_data(self, X, y, scaler):
+    def __rescale_data(self, X, y, scaler: str):
+        """
+        __rescale_data:
+        scale the features with the specified method
         
+        params:
+        X: dataframe, dataframe of features
+        y: dataframe, dataframe of response. useless to specify. for convenience only
+        scaler: str, transformer to use to scale the data before the calculation of interactions
+        
+        returns: object
+        """
         #normalisation des données
         if scaler =='robust':
             self.transformer = RobustScaler()
@@ -287,6 +356,8 @@ class LBM_Regression:
             self.transformer = MinMaxScaler()
         elif scaler =='standard':
             self.transformer = StandardScaler()
+        else:
+          raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
         
         return self.transformer.fit_transform(X, y)
     
@@ -310,6 +381,8 @@ class LBM_Regression:
     def __variable_instant(self, X):
         """
         transformation of the matrix into a modified unit called "variable/instant"
+        params:
+        returns:
         """
         eye = np.eye(X.shape[0], X.shape[0])
 
