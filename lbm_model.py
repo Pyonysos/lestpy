@@ -12,6 +12,7 @@ from sklearn.model_selection import LeaveOneOut
 
 from mpl_toolkits import mplot3d
 
+import scipy as sp
 from scipy.stats import dirichlet
 
 import statsmodels.api as sm
@@ -1159,29 +1160,60 @@ class LBM_Regression:
 
         return Sobol_list
 
-    def outliers_influence(self, plot: bool =True):
-        frame_list=[]
-        for i in self.y:
-            outliers = outliers_influence.OLSInfluence(self.model[i]['model_final'])
-            frame_list.append(outliers.summary_frame())
-            threshold = 4/outliers.summary_frame().shape[0]
+class Outliers_detection:
+    def __init__(self, other:object):
+        self.other=other
+        self.frame_list=[]
+        for i in self.other.y:
+            self.outliers = outliers_influence.OLSInfluence(self.other.model[i]['model_final'])
+            self.frame_list.append(self.outliers.summary_frame())
+        return self
+        
+    def cooks_distance(self, plot: bool =True):
+        for i in self.other.y:
+            threshold = 4/self.outliers.summary_frame().shape[0]
             
             print(f'threshold (4/n) = {round(threshold,3)}' )
             outliers_list= []
-            for n in range(0,outliers.summary_frame().shape[0]):
-                if outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
-                    outliers_list.append((n, outliers.summary_frame().at[n, 'cooks_d']))
+            for n in range(0,self.outliers.summary_frame().shape[0]):
+                if self.outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
+                    outliers_list.append((n, self.outliers.summary_frame().at[n, 'cooks_d']))
             print(f'potential outliers : {outliers_list}')
             if plot:
                 #plt.figure()
-                plt.scatter(range(0,outliers.summary_frame().shape[0]), outliers.summary_frame()['cooks_d'], label=i)
-            print(outliers.summary_table())
+                plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.outliers.summary_frame()['cooks_d'], label=i)
+            print(self.outliers.summary_table())
             
-        plt.plot([0, outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
+        plt.plot([0, self.outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
         plt.xlabel('Observation indices')
         plt.ylabel('Cook\'s distance')
         plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
         plt.show()
         
-        return frame_list
-
+        return self.frame_list
+    
+    def mahalanobis_distance(self, plot:bool=True):
+      #To Do
+        """
+        mahalanobis_distance:
+        D**2 = (x-µ)**T.C**(-1).(x-µ)
+        where, 
+        - D**2        is the square of the Mahalanobis distance. 
+        - x          is the vector of the observation (row in a dataset), 
+        - µ          is the vector of mean values of independent variables (mean of each column), 
+        - C**(-1)     is the inverse covariance matrix of independent variables.
+        """
+        for i in self.orner.y:
+            diff_x_u = self.other.X - np.mean(self.other.X, axis=0)
+            if not cov:
+                cov = np.cov(self.other.X.values.T)
+            inv_covmat = sp.linalg.inv(cov)
+            left_term = np.dot(diff_x_u, inv_covmat)
+            self.mahal_d = np.dot(left_term, diff_x_u.T)
+        #ajouter Mahalanobis a outlier summary
+        
+        if plot:
+          print("Not yet implemented")
+          plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
+        
+        return self.mahal_d.diagonal()
