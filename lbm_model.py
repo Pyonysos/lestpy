@@ -550,10 +550,10 @@ class LBM_Regression:
         return desirability
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list =['X_fort_Quand_Y_faible_Et_Inversement', 'X_fort_Ou_Y_fort', 'X_fort_Ou_Y_faible', 
-                                    'X_et_Y_forts,X_fort_et_Y_faible', 'X_fort_si_Y_fort', 'X_fort_si_Y_faible', 
-                                    'X_fort_si_Y_moyen', 'X_moyen_si_Y_fort', 'Ni_X_ni_Y_extremes', 'X_Y_moyens', 
-                                   ' X_comme_Y', 'Somme_X_et_Y_forte', 'Difference_X_et_Y_forte']):
+                  interaction_list: list =['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
+                                    'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
+                                    'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+                                   ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
         """
         transform method :
         
