@@ -119,7 +119,7 @@ As the interactions describes real physical effects, the user have the control t
       Plot_surface(x,y,z)
       
 #X_xor_Y
-class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
+class X_xor_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} xor {self.y.name}'
@@ -130,7 +130,7 @@ class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
         func = np.array(np.multiply(-self.x, self.y)).reshape(-1,1)
         return func
 #X_or_Y     
-class X_fort_Ou_Y_fort(Interaction):
+class X_or_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or {self.y.name}'
@@ -152,7 +152,7 @@ class X_fort_Ou_Y_faible(Interaction):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
 #X_and_Y
-class X_et_Y_forts(Interaction):
+class X_and_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and {self.y.name}'
@@ -164,7 +164,7 @@ class X_et_Y_forts(Interaction):
         return func
 
 #X_and_not_Y                                      
-class X_fort_et_Y_faible(Interaction):
+class X_and_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and not {self.y.name}'
@@ -176,7 +176,7 @@ class X_fort_et_Y_faible(Interaction):
         return func
         
 #X_if_Y
-class X_fort_si_Y_fort(Interaction):
+class X_if_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name}'
@@ -188,7 +188,7 @@ class X_fort_si_Y_fort(Interaction):
         return func
         
 # X_if_not_Y                                       
-class X_fort_si_Y_faible(Interaction):
+class X_if_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if not {self.y.name}'
@@ -200,7 +200,7 @@ class X_fort_si_Y_faible(Interaction):
         return func
 
 #X_if_Y_average         
-class X_fort_si_Y_moyen(Interaction):
+class X_if_Y_average(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name} average'
@@ -211,7 +211,7 @@ class X_fort_si_Y_moyen(Interaction):
         func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y))/500+np.square(self.y))).reshape(-1,1)
         return func
 #X_average_if_Y
-class X_moyen_si_Y_fort(Interaction):
+class X_average_if_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if {self.y.name}'
@@ -222,7 +222,7 @@ class X_moyen_si_Y_fort(Interaction):
         func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
 #X_average_if_not_Y
-class X_moyen_si_Y_faible(Interaction):
+class X_average_if_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if not {self.y.name}'
@@ -234,7 +234,7 @@ class X_moyen_si_Y_faible(Interaction):
         return func
         
 #Neither_X_nor_Y_extreme
-class Ni_X_ni_Y_extremes(Interaction):
+class Neither_X_nor_Y_extreme(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
@@ -244,11 +244,11 @@ class Ni_X_ni_Y_extremes(Interaction):
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
         return func
-#X_Y_both_average    
-class X_Y_moyens(Interaction):
+#both_X_Y_average    
+class both_X_Y_average(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} and {self.y.name} both average'
+        self.name = f'both {self.x.name} and {self.y.name} average'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
@@ -256,7 +256,7 @@ class X_Y_moyens(Interaction):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
         return func
 #X_like_Y    
-class X_comme_Y(Interaction):
+class X_like_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} like {self.y.name}'
@@ -267,7 +267,7 @@ class X_comme_Y(Interaction):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
         return func
 # Sum_X_Y
-class Somme_X_et_Y_forte(Interaction):
+class Sum_X_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Sum of {self.x.name} and {self.y.name} high'
@@ -278,7 +278,7 @@ class Somme_X_et_Y_forte(Interaction):
         func = np.array(self.x+self.y).reshape(-1,1)
         return func
 #Difference_X_Y   
-class Difference_X_et_Y_forte(Interaction):
+class Difference_X_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference of {self.x.name} and {self.y.name} high'
