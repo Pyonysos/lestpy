@@ -754,7 +754,7 @@ class LBM_Regression:
             variable_instant_X = pd.DataFrame(var_X, columns=Denomin.columns.tolist())
 
             #computation with the coefficients
-            
+            #utiliser transform
             predictions = np.dot(variable_instant_X, self.model[i]['model_final'].params[:-1])
             predictions = predictions + self.model[i]['model_final'].params[-1]
             
