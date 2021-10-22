@@ -120,7 +120,7 @@ As the interactions describes real physical effects, the user have the control t
       z = self.calc()
       Plot_surface(x,y,z)
       
-#Rename X_xor_Y
+#X_xor_Y
 class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -142,7 +142,7 @@ class X_fort_Ou_Y_fort(Interaction):
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
         return func
-#X or not Y  
+#X_or_not_Y  
 class X_fort_Ou_Y_faible(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -165,7 +165,7 @@ class X_et_Y_forts(Interaction):
         func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
         return func
 
-X_and_not_Y                                      
+#X_and_not_Y                                      
 class X_fort_et_Y_faible(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -246,7 +246,7 @@ class Ni_X_ni_Y_extremes(Interaction):
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
         return func
-#X_and_Y_average    
+#X_Y_both_average    
 class X_Y_moyens(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -257,7 +257,7 @@ class X_Y_moyens(Interaction):
     def calc(self):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
         return func
-    
+#X_like_Y    
 class X_comme_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -268,7 +268,7 @@ class X_comme_Y(Interaction):
     def calc(self):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
         return func
-    
+# Sum_X_Y
 class Somme_X_et_Y_forte(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -279,7 +279,7 @@ class Somme_X_et_Y_forte(Interaction):
     def calc(self):
         func = np.array(self.x+self.y).reshape(-1,1)
         return func
-    
+#Difference_X_Y   
 class Difference_X_et_Y_forte(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
