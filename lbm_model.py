@@ -290,9 +290,7 @@ class Difference_X_Y(Interaction):
         return func
 
 """
-**************************************************************************************************************************
-CORICO ALGORHITHM
-**************************************************************************************************************************
+REGRESSION ALGORHITHM
 """
 
 class LBM_Regression:
@@ -341,7 +339,7 @@ class LBM_Regression:
                         #changer en numpy
                         new_X = pd.concat((new_X, eval(interaction)(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0) ).compute()), axis =1)
                     else:
-                        if not interaction in [Difference_X_et_Y_forte, X_comme_Y]:
+                        if not interaction in [Difference_X_Y, X_like_Y]:
                             new_X = pd.concat((new_X, eval(interaction)(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0)).compute()), axis =1)
         
         self.with_interactions = True
