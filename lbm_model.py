@@ -119,8 +119,12 @@ As the interactions describes real physical effects, the user have the control t
       z = self.calc()
       Plot_surface(x,y,z)
       
-#X_xor_Y
+#
 class X_xor_Y(Interaction):
+  """
+  X_xor_Y: Response is high if X high and Y is low or vice versa
+  operator: x^y
+  """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} xor {self.y.name}'
@@ -132,6 +136,10 @@ class X_xor_Y(Interaction):
         return func
 #X_or_Y     
 class X_or_Y(Interaction):
+    """
+    X_or_Y: Response is high if X or Y are high
+    operator: x|y
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or {self.y.name}'
@@ -142,7 +150,11 @@ class X_or_Y(Interaction):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
         return func
 #X_or_not_Y  
-class X_fort_Ou_Y_faible(Interaction):
+class X_or_not_Y(Interaction):
+    """
+    X_or_not_Y: Response is high if X is high or Y is low
+    operator: x|-y
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or not {self.y.name}'
