@@ -50,6 +50,9 @@ from SALib.analyze import sobol
 
 import time
 
+"""
+Functions
+"""
 def plot_surface(a,b,c, **kwargs):
     """
     plot_surface: plot response surface in function of features a and b
