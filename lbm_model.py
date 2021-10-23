@@ -1,9 +1,21 @@
 """
-**************************************************************************************************************************
-DEPENDENCIES
-**************************************************************************************************************************
+TO DO:
+-Create a tool "outlier detection"
+|-- Add Mahalanobis distance
+|-- Add z-score
+
+-Translate the interaction in english
+
+-implement decorator for time measurement
+
+-Use black package to improve code readibility and respect the pythonic style of coding
+
 """
 
+
+"""
+DEPENDENCIES
+"""
 
 from pandas.core.frame import DataFrame
 from sklearn import model_selection
@@ -48,8 +60,6 @@ def Plot_surface(a,b,c, **kwargs):
 
     surf = ax.plot_trisurf(a.ravel(), b.ravel(), c, cmap=cmap, antialiased=True, edgecolor='none')
             
-
-
     fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
     ax.set_xlabel(f'{a.name}')
     ax.set_ylabel(f'{b.name}')
@@ -1093,6 +1103,10 @@ class LBM_Regression:
             ax = plt.axes(projection='3d')
             Cmap = plt.get_cmap('viridis')
 
+            Plot_surface(a.values.flatten(), b.values.flatten(), Y[c].values.flatten())
+            
+            """
+            
             Z = Y[c].values.flatten()
             surf = ax.plot_trisurf(a.values.flatten(), b.values.flatten(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
             fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
@@ -1102,7 +1116,7 @@ class LBM_Regression:
             ax.set_title(f'{c}=f({a.name, b.name}')
                     
             fig.show()
-    
+            """
     
     def pareto_frontier(self, res, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
 
