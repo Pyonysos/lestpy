@@ -1,8 +1,8 @@
 """
 TO DO:
 -Create a tool "outlier detection"
-|-- Add Mahalanobis distance
-|-- Add z-score
+|-- Complete Mahalanobis distance
+|-- Complete z-score
 
 -Translate the interaction in english
 
@@ -26,6 +26,7 @@ from sklearn.model_selection import LeaveOneOut
 
 from mpl_toolkits import mplot3d
 
+import scipy as sp
 from scipy.stats import dirichlet
 
 import statsmodels.api as sm
@@ -49,17 +50,16 @@ from SALib.analyze import sobol
 import time
 
 def Plot_surface(a,b,c, **kwargs):
-    
+  
     if hasattr(kwargs, "cmap"):
         cmap=kwargs['cmap']
     else:
         cmap='Viridis'
-  
-    fig = plt.figure(figsize=(14,9))    
+    
+    fig = plt.figure(figsize=(40,40))
     ax = plt.axes(projection='3d')
-
-    surf = ax.plot_trisurf(a.ravel(), b.ravel(), c, cmap=cmap, antialiased=True, edgecolor='none')
-            
+    Cmap = plt.get_cmap(cmap)  
+    surf = ax.plot_trisurf(a.ravel(), b.ravel(), c, cmap=Cmap, antialiased=True, edgecolor='none')     
     fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
     ax.set_xlabel(f'{a.name}')
     ax.set_ylabel(f'{b.name}')
@@ -134,166 +134,191 @@ class Interaction:
         y=pd.DataFrame(y.ravel(), columns=["y"])
         z = self.calc()
         Plot_surface(x,y,z)
-      
-
-class X_fort_Quand_Y_faible_Et_Inversement(Interaction):
+        
+#
+class X_xor_Y(Interaction):
+    """
+    X_xor_Y: Response is high if X high and Y is low or vice versa
+    operator: x^y
+    function:
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort quand {self.y.name} faible et inversement'
+        self.name = f'{self.x.name} xor {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(np.multiply(-self.x, self.y)).reshape(-1,1)
         return func
-        
-class X_fort_Ou_Y_fort(Interaction):
+#X_or_Y     
+class X_or_Y(Interaction):
+    """
+    X_or_Y: Response is high if X or Y are high
+    operator: x|y
+    function: 
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort ou {self.y.name} fort'
+        self.name = f'{self.x.name} or {self.y.name}'
         self.interaction = self.__class__.__name__       
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
         return func
-    
-class X_fort_Ou_Y_faible(Interaction):
+#X_or_not_Y  
+class X_or_not_Y(Interaction):
+    """
+    X_or_not_Y: Response is high if X is high or Y is low
+    operator: x|(not y)
+    function:
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort ou {self.y.name} faible'
+        self.name = f'{self.x.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
-
-class X_et_Y_forts(Interaction):
+#X_and_Y
+class X_and_Y(Interaction):
+    """
+    X_and_Y: Response is high if X and Y are high
+    operator: x&y
+    function:
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} et {self.y.name} forts'
+        self.name = f'{self.x.name} and {self.y.name}'
         self.interaction = self.__class__.__name__ 
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
         return func
-                                        
-class X_fort_et_Y_faible(Interaction):
+
+#X_and_not_Y                                      
+class X_and_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort et {self.y.name} faible'
+        self.name = f'{self.x.name} and not {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.max_y-self.y)).reshape(-1,1)
         return func
-
-class X_fort_si_Y_fort(Interaction):
+        
+#X_if_Y
+class X_if_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort si {self.y.name} fort'
+        self.name = f'{self.x.name} if {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
-                                          
-class X_fort_si_Y_faible(Interaction):
+        
+# X_if_not_Y                                       
+class X_if_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort si {self.y.name} faible'
+        self.name = f'{self.x.name} if not {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.max_y)-self.y)).reshape(-1,1)
         return func
-         
-class X_fort_si_Y_moyen(Interaction):
+
+#X_if_Y_average         
+class X_if_Y_average(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} fort si {self.y.name} moyen'
+        self.name = f'{self.x.name} if {self.y.name} average'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y))/500+np.square(self.y))).reshape(-1,1)
         return func
-        
-class X_moyen_si_Y_fort(Interaction):
+#X_average_if_Y
+class X_average_if_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} moyen si {self.y.name} fort'
+        self.name = f'{self.x.name} average if {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
-
-class X_moyen_si_Y_faible(Interaction):
+#X_average_if_not_Y
+class X_average_if_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} moyen si {self.y.name} faible'
+        self.name = f'{self.x.name} average if not {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
-    
-class Ni_X_ni_Y_extremes(Interaction):
+        
+#Neither_X_nor_Y_extreme
+class Neither_X_nor_Y_extreme(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'Ni {self.x.name} ni {self.y.name} extremes'
+        self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
         return func
-    
-class X_Y_moyens(Interaction):
+#both_X_Y_average    
+class both_X_Y_average(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} et {self.y.name} moyens'
+        self.name = f'both {self.x.name} and {self.y.name} average'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
         return func
-    
-class X_comme_Y(Interaction):
+#X_like_Y    
+class X_like_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} comme {self.y.name}'
+        self.name = f'{self.x.name} like {self.y.name}'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
         return func
-    
-class Somme_X_et_Y_forte(Interaction):
+# Sum_X_Y
+class Sum_X_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'Somme {self.x.name} et {self.y.name} forte'
+        self.name = f'Sum of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x+self.y).reshape(-1,1)
         return func
-    
-class Difference_X_et_Y_forte(Interaction):
+#Difference_X_Y   
+class Difference_X_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'Difference {self.x.name} et {self.y.name} forte'
+        self.name = f'Difference of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
         interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
@@ -302,9 +327,7 @@ class Difference_X_et_Y_forte(Interaction):
         return func
 
 """
-**************************************************************************************************************************
 REGRESSION ALGORHITHM
-**************************************************************************************************************************
 """
 
 class LBM_Regression:
@@ -324,23 +347,36 @@ class LBM_Regression:
     
     def bibliography(self):
         print("""
-                Bibliography on which is based the project:
+                Bibliography :
                 1. Lesty, Michel, et P Buat-Ménard. "La synthèse géométrique des corrélations multidimensionnelles". Les Cahiers de l’Analyse des données VII, no 3 (1982): 355‑70.
                 2. Lesty, Michel. "Une nouvelle approche dans le choix des régresseurs de la régression multiple en présence d’interactions et de colinéarités". revue Modulad 22 (1999): 41‑77.
                 3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
                 """)    
     
-    def __compute_interaction(self, X, allow_autointeraction, interaction_list):
+    def __autointeraction_param(self, allow_autointeraction):    #obsolete    
+        return 1 if allow_autointeraction==True else 0
+    
+    def __compute_interaction(self, X, autointeraction: bool, interaction_list: list):
+        """
+        __compute_interaction
+        compute all the listed interactions
+        
+        params:
+            X: Pandas dataframe of features
+            allow_autointeraction: bool, set to True, will compute interactions of a variable with itself. Set to False if you want to avoid self interaction
+            interaction_list: list, names (or dict but not yet implemented) of the interactions to be calculated
+            
+        returns: dataframe of the features and all the calculated interactions
+        """
         new_X = X.reset_index(drop=True)
-        n = 1 if allow_autointeraction==True else 0
         for i in range(X.shape[1]):
-            for j in range(i+1-n, X.shape[1]):
+            for j in range(i+1-autointeraction, X.shape[1]):
                 for interaction in interaction_list:
                     if i != j:
                         #changer en numpy
                         new_X = pd.concat((new_X, eval(interaction)(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0) ).compute()), axis =1)
                     else:
-                        if not interaction in [Difference_X_et_Y_forte, X_comme_Y]:
+                        if not interaction in [Difference_X_Y, X_like_Y]:
                             new_X = pd.concat((new_X, eval(interaction)(X.iloc[:,i], X.iloc[:,j], X.iloc[:,i].max(axis=0),X.iloc[:,i].min(axis=0), X.iloc[:,j].max(axis=0), X.iloc[:,j].min(axis=0)).compute()), axis =1)
         
         self.with_interactions = True
@@ -371,23 +407,6 @@ class LBM_Regression:
         
         return self.transformer.fit_transform(X, y)
     
-    def __variable_instant_transform(self, X, coef, denomin,L=None):
-        """
-        transformation of __variable_instant 
-        """
-        #print(Coef.shape, denomin.shape, X.shape, self.Shape)
-        if L is None:
-            L =[n for n in range(0, len(denomin))]
-        
-        """
-        Coef = self.Coef[:,L] 
-        """
-        Denomin = pd.DataFrame(denomin).iloc[L].transpose()
-        Denominator = np.array(Denomin).reshape(1, Denomin.shape[1])
-        
-        #print(Coef.shape, X.shape, self.Shape)
-        return np.divide(np.subtract(np.array(X)*self.Shape, coef[:,L]), Denominator)
-    
     def __variable_instant(self, X):
         """
         transformation of the matrix into a modified unit called "variable/instant"
@@ -406,12 +425,11 @@ class LBM_Regression:
         self.with_variable_instant = True
         self.Shape = X.shape[0]
         
-        #variable = np.divide(np.subtract(X*self.Shape, self.Coef), self.denomin)
-        variable = self.__variable_instant_transform(X, self.Coef, self.denomin)
+        variable = np.divide(np.subtract(X*self.Shape, self.Coef), self.denomin)
 
         return variable
     
-    def __variable_instant_inverse_transform(self, rescaled_X):
+    def __unscale_data(self, rescaled_X):
         """
         inverse transformation of __variable_instant 
         """
@@ -569,10 +587,10 @@ class LBM_Regression:
         return desirability
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list =['X_fort_Quand_Y_faible_Et_Inversement', 'X_fort_Ou_Y_fort', 'X_fort_Ou_Y_faible', 
-                                    'X_et_Y_forts,X_fort_et_Y_faible', 'X_fort_si_Y_fort', 'X_fort_si_Y_faible', 
-                                    'X_fort_si_Y_moyen', 'X_moyen_si_Y_fort', 'Ni_X_ni_Y_extremes', 'X_Y_moyens', 
-                                   ' X_comme_Y', 'Somme_X_et_Y_forte', 'Difference_X_et_Y_forte']):
+                  interaction_list: list =['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
+                                    'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
+                                    'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+                                   ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
         """
         transform method :
         
@@ -597,8 +615,14 @@ class LBM_Regression:
         self.X = X.reset_index(drop=True)
         self.X_start = self.X
         self.y = y.reset_index(drop=True)
+        
+        #Step1: set autointeraction
+        try:
+            autointeraction = self.__autointeraction_param(allow_autointeraction)
+        except:
+            raise NotImplementedError('autointeraction failed')
        
-        #Step1: Rescale data
+        #Step2: Rescale data
         try:
             self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
         except:
@@ -606,7 +630,7 @@ class LBM_Regression:
     
         #Step2: compute new features
         try:
-            self.features = self.__compute_interaction(self.X, allow_autointeraction, interaction_list)
+            self.features = self.__compute_interaction(self.X, autointeraction, interaction_list)
         except: 
             raise NotImplementedError('computation of the interactions failed')
         
@@ -652,7 +676,6 @@ class LBM_Regression:
         #Mesure du temps de calcul
         start = time.time()
         
-        #check if all parameters are correctly input
         if type(threshold) is not float:
             raise TypeError('threshold must be a float between 0 and 1')
         
@@ -675,31 +698,23 @@ class LBM_Regression:
             self.__compute_correlation_matrix(self.rescaled_features,  y[i])
             
             for reg in range(max_regressors_nb):
-                #identification of the best interaction of this loop
+                #identification de la meilleure interaction
                 self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
-                #compute the partial correlation
                 self.corr_X = self.__partial_correlations(self.corr_X, self.model[i]['selected_features'][-1][0])
-                #save values of Q² for model selection 
+
                 self.model[i]['metrics'].append(self.__model_evaluation(self.model[i]['results']))
-
-            #identify the best number of predictors by maximizing the Q² value
+                
             self.model[i]['nb_predictor'] = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
-            #obsolete
-            #self.model[i]['model_final'] = LinearRegression()
-
-            #add a column of 1 (intercept) to the data for model fitting to responses using statsmodel.OLS    
+            self.model[i]['model_final'] = LinearRegression()
+                
             data = pd.concat((self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1], pd.DataFrame(np.ones(y[i].shape), columns=['intercept'])), axis=1)
-            #fitting predictors to responses with sm.OLS
             model = sm.OLS(y[i], data)
             self.model[i]['model_final'] = model.fit()
-            #print results
             print(self.model[i]['model_final'].summary())
             
-            #predict data
             self.model[i]['y_pred'] = self.model[i]['model_final'].predict(data)
             
-
-        #print the amount of time spent to compute the model    
+            
         end = time.time()
         print(f'fit method computed in {round(end-start, 3)} seconds')
         self.with_fit = True
@@ -725,69 +740,62 @@ class LBM_Regression:
         transformed_X_start = pd.DataFrame(self.transformer.transform(self.X_start), columns=X.columns.tolist())
         self.y_pred = pd.DataFrame()
         
-        #transform y to DataFrame and avoid pandas.Series
         try:
             y = self.y.to_frame()
         except:
             y = self.y
         
-        #loop through the models for each responses
         for i in y:
             new_X = None
         
-            #transform the features to the selected predictors of the model in the fit method
+            #computation of the selected and enginered features of the model
             for element in self.model[i]['selected_features'][:self.model[i]['nb_predictor']]:
                 try :
-                    #call the right interaction
                     func = interaction_dict[element[0]]['interaction']
                     x_df= transformed_X[interaction_dict[element[0]]["x"].name]
                     y_df= transformed_X[interaction_dict[element[0]]["y"].name]
 
-                    #call the max and min from the data on which the model was fitted
-                    # otherwise if the new data to predict have not the same min and max for each feature the responses will be greatly modified
                     max_x = np.max(transformed_X_start[interaction_dict[element[0]]["x"].name])
                     min_x = np.min(transformed_X_start[interaction_dict[element[0]]["x"].name])
                     max_y = np.max(transformed_X_start[interaction_dict[element[0]]["y"].name])
                     min_y = np.min(transformed_X_start[interaction_dict[element[0]]["y"].name])
-
-                    #compute the interaction values
                     col = eval(func)(x_df, y_df, max_x=max_x, min_x=min_x, max_y=max_y, min_y=min_y).compute()
                 except KeyError:
-                    #keep the feature unmodified if the modelisation found it relevant so
                     col = transformed_X[element[0]]
             
                 finally:
-                    #some 'infinity values' appear during calculation because of value very close to zero 
                     pd.options.mode.use_inf_as_na = True
                     
                     if any(col.isna()):
                         col[col.isna()] = 0
                     
-                    #the new frame of predictors
+                    
+
                     if 'new_X' not in locals():
                         new_X = col
                     else:
-                        #append the new calculated colums
                         new_X = pd.concat((new_X, col), axis=1)
             
-            #transform the newly generated frame to acurate scale
-            #L = mask to locate the position of the interaction in the Coef and denomin vectors
-            self.L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.model[i]['nb_predictor']])[:,-1]]
-
-            #transform to the scale
-            var_X =self.__variable_instant_transform(new_X, self.Coef, self.denomin, self.L)
+            #transformation to acurate scale
+            #L = position of the interaction in the Coef and denomin vectors
+            L = [int(n) for n in np.array(self.model[i]['selected_features'][:self.model[i]['nb_predictor']])[:,-1]]
             
-            #transform to dataFrame
-            variable_instant_X = pd.DataFrame(var_X, columns=self.model[i]['selected_features'][:self.model[i]['nb_predictor']])
+            Coef = self.Coef[:,L]
             
+            Denomin = pd.DataFrame(self.denomin).iloc[L].transpose()
+            
+            Denominator = np.array(Denomin).reshape(1, Denomin.shape[1])
 
-            #compute with the model coefficients and intercept
+            var_X = np.divide(np.subtract(np.array(new_X)*self.Shape, Coef), Denominator)
+
+            variable_instant_X = pd.DataFrame(var_X, columns=Denomin.columns.tolist())
+
+            #computation with the coefficients
+            #utiliser transform
             predictions = np.dot(variable_instant_X, self.model[i]['model_final'].params[:-1])
             predictions = predictions + self.model[i]['model_final'].params[-1]
-
-            #save data in in y_pred varaible
-            self.model[i]['y_pred'] = pd.DataFrame(predictions , columns=[f'Predicted {i}'])
-            #Append the dataFrame with all the predicted response
+            
+            self.model[i]['y_pred'] = pd.DataFrame(predictions , columns=[f'Pred{i}'])
             self.y_pred = pd.concat((self.y_pred, self.model[i]['y_pred']), axis=1)
         
         return self.y_pred
@@ -806,16 +814,7 @@ class LBM_Regression:
                 vartype = 'continuous'
                 varlist = None
             
-            #self.experimental_domain[X[feature].name] = [None, X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
-            self.experimental_domain[X[feature].name] = {
-                'min_value' : X[feature].min(axis=0),
-                'max_value' : X[feature].max(axis=0),
-                'var_type' : vartype,
-                'list of values' : varlist,
-                'fix_to_value' : None,
-                'plot': False
-                }
-
+            self.experimental_domain[X[feature].name] = [None, X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
         
         self.mix=None
         for i in range(0, X.shape[1]):
@@ -828,7 +827,7 @@ class LBM_Regression:
                     self.mixmin = X.iloc[:, i:j].min(axis=0).mean()
                     break
         
-        #exp_dom = pd.DataFrame(self.experimental_domain, index=['status','min value', 'max_value', 'values', 'var type'])
+        exp_dom = pd.DataFrame(self.experimental_domain, index=['status','min value', 'max_value', 'values', 'var type'])
         #print('experimental domain: ', exp_dom, 'mixture: ', self.mix, sep='\n\n' )
 
         return self.experimental_domain, self.mix
@@ -836,14 +835,17 @@ class LBM_Regression:
     def __features_generator(self, remaining_features, experimental_domain, size):
         #create random array respecting the restrictions of the features 
         for var in remaining_features:
-            if experimental_domain[var]['var_type'] == 'discrete':
+            if experimental_domain[var][4] == 'discrete':
                 #create a random array of the discrete values
-                exploration_array = np.random.choice(experimental_domain[var]['list of values'], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
-            elif experimental_domain[var]['var_type'] == 'continuous':
+                exploration_array = np.random.choice(experimental_domain[var][3], (size, 1), replace=True, p=None) #p peut permettre de mettre du poids sur le paramètre interessant
+            elif experimental_domain[var][4] == 'continuous':
                 #create a random array of the discrete values
                 rng = np.random.default_rng()
-                exploration_array = (experimental_domain[var]['max_value'] - experimental_domain[var]['min_value']) * rng.random((size, 1), dtype=np.float64) + experimental_domain[var]['min_value']
-            experimental_domain[var]['generated values'] = exploration_array
+                exploration_array = (experimental_domain[var][2] - experimental_domain[var][1]) * rng.random((size, 1), dtype=np.float64) + experimental_domain[var][1]
+            try:
+                experimental_domain[var][5] = exploration_array
+            except:
+                experimental_domain[var].append(exploration_array)  
         return experimental_domain
     
     def __mix_features_generator(self, alpha, size, random_state, mix):
@@ -867,7 +869,7 @@ class LBM_Regression:
                 if x is None:
                     x = pd.DataFrame()   
                 #a voir si erreur
-                x = pd.concat((x, pd.DataFrame(experimental_domain[var]['generated values'], columns=[var])), axis=1)
+                x = pd.concat((x, pd.DataFrame(experimental_domain[var][5], columns=[var])), axis=1)
         return x
     
     def optimize(self, experimental_domain:dict=None, target:list=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
@@ -999,69 +1001,67 @@ class LBM_Regression:
         document.save(f'{title}.docx')
 
     def print_in_file(self):
-        return #fichier avec données enregistrées et formatées
+        return #fichier avec données enregistrées et formatées 
 
     def __extract_features(self, experimental_domain: dict):
-
+        screened_var=[]
+        set_mix_var =[]
+        set_mix_values=[]
+        set_var=[]
+        set_values=[]
         try:
-            screened_var = [key for key in experimental_domain.keys() if experimental_domain[key]['plot'] == True]
+            for key in experimental_domain.keys():
+                if experimental_domain[key][0] == 'toPlot':
+                    screened_var.append(key)
+                else:
+                    if isinstance(experimental_domain[key][0], (int, float)):
+                        if key in self.mix:
+                            set_mix_var.append(key)
+                            set_mix_values.append(experimental_domain[key][0])
+                        else:
+                            set_var.append(key)
+                            set_values.append(experimental_domain[key][0])
 
-            return screened_var
+            return screened_var, set_mix_var, set_mix_values, set_var, set_values
 
         except ValueError:
-            print('To plot a ternary diagram please set 3 variable values to None')
+            print('To plot a ternary diagram please set 3 variable values to "toPlot"')
         
     def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
         #list the features to plot
-        var = self.__extract_features(experimental_domain)
-        #generate a dataset
-        Arr = self.__mix_features_generator(alpha, size, random_state, var)
+        var, set_mix_var, set_mix_values, set_var, set_values = self.__extract_features(experimental_domain) 
         
-        #scale the data to the right values
-        df_Arr = (self.mixmax * pd.DataFrame(Arr, columns=var) - self.mixmin)
-
-        #list the feature not plot
-        set_values = []
-        set_values_names = []
-
-        for key, value in experimental_domain.items():
-            if isinstance(experimental_domain[key]['fix_to_value'], (int, float)):
-                set_values.append(value['fix_to_value'])
-                set_values_names.append(key)
-            #if experimental_domain[key][0] is None:
-                
-                
+        #generate a dataset and scale to right maximum
+        Arr = (self.mixmax - self.mixmin - sum(set_mix_values)) * self.__mix_features_generator(alpha, size, random_state, var) + self.mixmin
 
         #broadcast the set values to complete the dataset and
         Bc_set_values = np.broadcast_to(np.array(set_values).reshape(1,-1), (size, len(set_values)))
-        X = pd.DataFrame(np.hstack((df_Arr, Bc_set_values)), columns = var + set_values_names)
+        Bc_set_mix_values = np.broadcast_to(np.array(set_mix_values).reshape(1,-1), (size, len(set_mix_values)))
 
-        """
-        <!!> Probleme si toutes les variables ne font pas partie d'un plan de mélange !!!
-        """
-        #set the mixture to the acurate sum
-        #print(X)
-        X_mix = 100* X[mix] / np.sum(X[mix], axis=1).mean()
-        X = pd.concat((X[set(X.columns)-set(X_mix.columns)], X_mix), axis=1)
-        #print(X[self.X_start.columns])
-        Results = self.predict(X[self.X_start.columns])
-
-        return var, X, Results
+        Ternary_X = pd.DataFrame(np.hstack((Arr, Bc_set_values,Bc_set_mix_values )), columns = var + set_var + set_mix_var)
+        
+        Results = self.predict(Ternary_X[self.X_start.columns])
+        
+        
+        return var, Ternary_X[self.X_start.columns], Results
+        
 
     def TM_plot(self, experimental_domain: dict, mix: list = None, alpha: list=None, size: int = 1000, random_state: int=None, ncontours: int=20):
         #generate the accurate data to be plot
         if mix is None:
             if self.with_fit:
                 mix = self.mix
-        var, X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
+        var, Ternary_X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
         
+        plotted_var = np.divide(Ternary_X[var], Ternary_X[var].sum(axis=1).values.reshape(-1,1)) * 100
+
         #plot the ternary contour for each targets
         for res in results:
-            fig = ff.create_ternary_contour(np.array(X[var]).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
+            fig = ff.create_ternary_contour(np.array(plotted_var).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
             fig.show()
         return self
     
-    def RS_plot(self, X: DataFrame = None, Y: DataFrame = None, experimental_domain: dict=None, status=None, size: int = 10000):
+    def RS_plot(self, X: DataFrame = None, Y: DataFrame = None, experimental_domain: dict=None, size: int = 10000):
         #If variables are undefined by user, get the variables that were use for modelling
         if self.with_fit:
             if X is None:
@@ -1076,37 +1076,42 @@ class LBM_Regression:
                 raise ValueError('')
         
         #List the variables to plot in the model
-        features_to_plot = self.__extract_features(experimental_domain)
+        screened_var, *others = self.__extract_features(experimental_domain)
         
         #generate the data that will be plotted
         X_complete = self.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
-
+        a, b = np.meshgrid(X_complete[screened_var[0]].values, X_complete[screened_var[1]].values)
+        
+        Plot_df= pd.DataFrame(np.ones(len(a.ravel()), X.complete.shape[1]), columns=X_complete.columns)
         #Set the fixed variables to the desired value
         Arr=[]
         Arr_name=[]
-        for key in (set(experimental_domain.keys())-set(features_to_plot)):
-            if not isinstance(experimental_domain[key]['fix_to_value'], (int, float)):
+        for key in (set(experimental_domain.keys())-set(screened_var)):
+            if not isinstance(experimental_domain[key][0], (int, float)):
                 Arr.append(0)
             else:
-                Arr.append(experimental_domain[key]['fix_to_value'])
+                Arr.append(experimental_domain[key][0])
             Arr_name.append(key)
-        X_complete[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
+        
+        #fill the columns with the fixed values
+        Plot_df[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
+        #print(X_complete.describe())
         
         #Compute the output values of the data
-        Y = self.predict(X_complete[self.X_start.columns])
+        Y = self.predict(Plot_df[self.X_start.columns])
 
         #Plot the surface for each target
-        a,b = X_complete[features_to_plot[0]], X_complete[features_to_plot[1]]
+        a,b = Plot_df[screened_var[0]].values, Plot_df[screened_var[0]].values
         for c in Y:
 
-            fig = plt.figure(figsize=(14,9))    
-            ax = plt.axes(projection='3d')
-            Cmap = plt.get_cmap('viridis')
+            
 
             Plot_surface(a.values.flatten(), b.values.flatten(), Y[c].values.flatten())
             
             """
-            
+            fig = plt.figure(figsize=(40,40))
+            ax = plt.axes(projection='3d')
+            Cmap = plt.get_cmap('viridis')
             Z = Y[c].values.flatten()
             surf = ax.plot_trisurf(a.values.flatten(), b.values.flatten(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
             fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
@@ -1169,13 +1174,11 @@ class LBM_Regression:
         Sobol_list = []
 
         problem = {
-            'num_vars': len(self.X.columns),
-            'names' : list(self.X.columns),
-            'bounds': [[experimental_domain[n]['min_value'], experimental_domain[n]['max_value']] for n in self.X.columns]
+            'num_vars': len(experimental_domain),
+            'names' : list(experimental_domain.keys()),
+            'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
         }
-        print(problem)
         param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns=self.X.columns)
-        print(param_values)
         predictions = self.predict(param_values)
         
         for c in predictions:
@@ -1197,29 +1200,64 @@ class LBM_Regression:
 
         return Sobol_list
 
-    
-    def outliers_influence(self, plot: bool =True):
-        frame_list=[]
-        for i in self.y:
-            outliers = outliers_influence.OLSInfluence(self.model[i]['model_final'])
-            frame_list.append(outliers.summary_frame())
-            threshold = 4/outliers.summary_frame().shape[0]
+class Outliers_detection:
+    def __init__(self, other:object):
+        self.other=other
+        self.frame_list=[]
+        for i in self.other.y:
+            self.outliers = outliers_influence.OLSInfluence(self.other.model[i]['model_final'])
+            self.frame_list.append(self.outliers.summary_frame())
+        return self
+        
+    def cooks_distance(self, plot: bool =True):
+        for i in self.other.y:
+            threshold = 4/self.outliers.summary_frame().shape[0]
             
             print(f'threshold (4/n) = {round(threshold,3)}' )
             outliers_list= []
-            for n in range(0,outliers.summary_frame().shape[0]):
-                if outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
-                    outliers_list.append((n, outliers.summary_frame().at[n, 'cooks_d']))
+            for n in range(0,self.outliers.summary_frame().shape[0]):
+                if self.outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
+                    outliers_list.append((n, self.outliers.summary_frame().at[n, 'cooks_d']))
             print(f'potential outliers : {outliers_list}')
             if plot:
                 #plt.figure()
-                plt.scatter(range(0,outliers.summary_frame().shape[0]), outliers.summary_frame()['cooks_d'], label=i)
-            print(outliers.summary_table())
+                plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.outliers.summary_frame()['cooks_d'], label=i)
+            print(self.outliers.summary_table())
             
-        plt.plot([0, outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
+        plt.plot([0, self.outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
         plt.xlabel('Observation indices')
         plt.ylabel('Cook\'s distance')
         plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
         plt.show()
         
-        return frame_list
+        return self.frame_list
+    
+    def mahalanobis_distance(self, plot:bool=True):
+      #To Do
+        """
+        mahalanobis_distance:
+        D**2 = (x-µ)**T.C**(-1).(x-µ)
+        where, 
+        - D**2        is the square of the Mahalanobis distance. 
+        - x          is the vector of the observation (row in a dataset), 
+        - µ          is the vector of mean values of independent variables (mean of each column), 
+        - C**(-1)     is the inverse covariance matrix of independent variables.
+        """
+        for i in self.orner.y:
+            diff_x_u = self.other.X - np.mean(self.other.X, axis=0)
+            if not cov:
+                cov = np.cov(self.other.X.values.T)
+            inv_covmat = sp.linalg.inv(cov)
+            left_term = np.dot(diff_x_u, inv_covmat)
+            self.mahal_d = np.dot(left_term, diff_x_u.T)
+        #ajouter Mahalanobis a outlier summary
+        
+        if plot:
+          print("Not yet implemented")
+          plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
+        
+        return self.mahal_d.diagonal()
+
+    def z_score(self, plot:bool=True):
+        pass
+
