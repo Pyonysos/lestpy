@@ -260,7 +260,6 @@ class X_if_not_Y(Interaction):
         func = np.array(self.x*(np.abs(self.max_y)-self.y)).reshape(-1,1)
         return func
 
-#X_if_Y_average         
 class X_if_Y_average(Interaction):
     """
     X_if_Y_average: Response is high if X is high when Y is average
@@ -276,7 +275,7 @@ class X_if_Y_average(Interaction):
     def calc(self):
         func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y))/500+np.square(self.y))).reshape(-1,1)
         return func
-#X_average_if_Y
+
 class X_average_if_Y(Interaction):
     """
     X_average_if_Y: Response is high if X is average and Y is high
@@ -367,10 +366,14 @@ REGRESSION ALGORHITHM
 class LBM_Regression:
     """
     Lesty Buat-Menard Regression.
-        LBM_Regression calculate interactions of two variables, selects the most relevant ones and fits a linear model with coefficients w = (w1, ..., wp)
-        to minimize the residual sum of squares between the observed targets in
-        the dataset, and the targets predicted by the linear approximation.
+        LBM_Regression calculates interactions of two variables, selects the most relevant ones that minimizes the standar error of prediction of the model with forward feature selection. the modèle is then fitted to the dataset with coefficients w = (w1, ..., wp).
+        
+          Bibliography :
+                1. Lesty, Michel, et P Buat-Ménard. "La synthèse géométrique des corrélations multidimensionnelles". Les Cahiers de l’Analyse des données VII, no 3 (1982): 355‑70.
+                2. Lesty, Michel. "Une nouvelle approche dans le choix des régresseurs de la régression multiple en présence d’interactions et de colinéarités". revue Modulad 22 (1999): 41‑77.
+                3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
     """
+    
     def __init__(self):
         self.with_optimization = False
         self.with_interactions = False
@@ -378,14 +381,6 @@ class LBM_Regression:
         self.with_transform = False
         self.with_variable_instant = False
         return
-    
-    def bibliography(self):
-        print("""
-                Bibliography :
-                1. Lesty, Michel, et P Buat-Ménard. "La synthèse géométrique des corrélations multidimensionnelles". Les Cahiers de l’Analyse des données VII, no 3 (1982): 355‑70.
-                2. Lesty, Michel. "Une nouvelle approche dans le choix des régresseurs de la régression multiple en présence d’interactions et de colinéarités". revue Modulad 22 (1999): 41‑77.
-                3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
-                """)    
     
     def __autointeraction_param(self, allow_autointeraction):    #obsolete    
         return 1 if allow_autointeraction==True else 0
