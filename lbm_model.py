@@ -8,7 +8,7 @@ TO DO:
 
 -implement decorator for time measurement
 
--Use black package to improve code readibility and respect the pythonic style of coding
+-Use black package to improve code readability and respect the pythonic style of coding
 
 """
 
@@ -17,14 +17,15 @@ TO DO:
 DEPENDENCIES
 """
 
-from pandas.core.frame import DataFrame
+from pandas.core.frame import DataFrame #usefull?
+#progressively remove sklearn imports
 from sklearn import model_selection
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
 
-from mpl_toolkits import mplot3d
+from mpl_toolkits import mplot3d #usefull ?
 
 import scipy as sp
 from scipy.stats import dirichlet
