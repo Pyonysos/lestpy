@@ -135,12 +135,12 @@ class Interaction:
         z = self.calc()
         Plot_surface(x,y,z)
         
-#
+
 class X_xor_Y(Interaction):
     """
     X_xor_Y: Response is high if X high and Y is low or vice versa
     operator: x^y
-    function:
+    function: -x*y
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -151,12 +151,12 @@ class X_xor_Y(Interaction):
     def calc(self):
         func = np.array(np.multiply(-self.x, self.y)).reshape(-1,1)
         return func
-#X_or_Y     
+   
 class X_or_Y(Interaction):
     """
     X_or_Y: Response is high if X or Y are high
     operator: x|y
-    function: 
+    function: -(max(x)-x)*(max(y)-y)
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -167,12 +167,12 @@ class X_or_Y(Interaction):
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
         return func
-#X_or_not_Y  
+
 class X_or_not_Y(Interaction):
     """
     X_or_not_Y: Response is high if X is high or Y is low
     operator: x|(not y)
-    function:
+    function: -(max(x)-x)*(|min(y)|+y)
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -183,12 +183,12 @@ class X_or_not_Y(Interaction):
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
-#X_and_Y
+
 class X_and_Y(Interaction):
     """
     X_and_Y: Response is high if X and Y are high
     operator: x&y
-    function:
+    function: (|min(x)|+x)*(|min(y)|+y)
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -200,8 +200,12 @@ class X_and_Y(Interaction):
         func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
         return func
 
-#X_and_not_Y                                      
 class X_and_not_Y(Interaction):
+    """
+    X_and_not_Y: Response is high if X is high and Y is low
+    operator: x&(not y)
+    function: (|min(x)|+x)*(max(y)-y)
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and not {self.y.name}'
@@ -212,8 +216,12 @@ class X_and_not_Y(Interaction):
         func = np.array((self.x+np.abs(self.min_x))*(self.max_y-self.y)).reshape(-1,1)
         return func
         
-#X_if_Y
 class X_if_Y(Interaction):
+    """
+    X_if_Y: Response is high if X is high when Y is not low
+    operator: x*(y != 0)
+    function: x*(|min(y)|+y)
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name}'
@@ -224,8 +232,12 @@ class X_if_Y(Interaction):
         func = np.array(self.x*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
         
-# X_if_not_Y                                       
 class X_if_not_Y(Interaction):
+    """
+    X_if_not_Y: Response is high if X is high when Y is low
+    operator: x*(y < max(y))
+    function: x*(max(y)-y)
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if not {self.y.name}'
