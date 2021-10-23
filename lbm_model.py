@@ -124,6 +124,7 @@ class X_xor_Y(Interaction):
   """
   X_xor_Y: Response is high if X high and Y is low or vice versa
   operator: x^y
+  function:
   """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -139,6 +140,7 @@ class X_or_Y(Interaction):
     """
     X_or_Y: Response is high if X or Y are high
     operator: x|y
+    function: 
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -153,7 +155,8 @@ class X_or_Y(Interaction):
 class X_or_not_Y(Interaction):
     """
     X_or_not_Y: Response is high if X is high or Y is low
-    operator: x|-y
+    operator: x|(not y)
+    function:
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -165,7 +168,12 @@ class X_or_not_Y(Interaction):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
         return func
 #X_and_Y
-class X_and_Y(Interaction):
+class X_and_Y(Interaction
+    """
+    X_and_Y: Response is high if X and Y are high
+    operator: x&y
+    function:
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and {self.y.name}'
