@@ -52,11 +52,15 @@ import time
 
 def plot_surface(a,b,c, **kwargs):
     """
-    plot_surface: 
+    plot_surface: plot response surface in function of features a and b
     
     params:
+    a: 1D array (n,)
+    b: 1D array (n,)
+    c: 1D array (n,)
+    kwargs
     
-    return:
+    return: None
     """
     if hasattr(kwargs, "cmap"):
         cmap=kwargs['cmap']
@@ -73,7 +77,6 @@ def plot_surface(a,b,c, **kwargs):
     ax.set_zlabel(f'{c.name}')
     ax.set_title(f'Interaction: {c.name}')
     fig.show()
-    return
 
 #interaction_dict will store all the data concerning the use of interactions
 interaction_dict={}
