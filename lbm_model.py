@@ -50,8 +50,14 @@ from SALib.analyze import sobol
 
 import time
 
-def Plot_surface(a,b,c, **kwargs):
-  
+def plot_surface(a,b,c, **kwargs):
+    """
+    plot_surface: 
+    
+    params:
+    
+    return:
+    """
     if hasattr(kwargs, "cmap"):
         cmap=kwargs['cmap']
     else:
@@ -146,7 +152,7 @@ class Interaction:
         x=pd.DataFrame(x.ravel(), columns=["x"])
         y=pd.DataFrame(y.ravel(), columns=["y"])
         z = self.calc()
-        Plot_surface(x,y,z)
+        plot_surface(x,y,z)
         
 
 class X_xor_Y(Interaction):
@@ -294,11 +300,6 @@ class X_average_if_Y(Interaction):
         return func
 
 class X_average_if_not_Y(Interaction):
-    """
-    X_average_if_not_Y: Response is high if X is average and Y is low
-    operator: (min(x) < x < max(x)) & (not y)
-    function: (max(y)-y) / sqrt((max(x) + |min(x)|) / (200 + x**2))
-    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if not {self.y.name}'
@@ -309,12 +310,8 @@ class X_average_if_not_Y(Interaction):
         func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
         
+#Neither_X_nor_Y_extreme
 class Neither_X_nor_Y_extreme(Interaction):
-    """
-    Neither_X_nor_Y_extreme: Response is high if X and Y are neither high nor low
-    operator: ((x != min) | (x != max(x))) & ((y != min(y)) | (y != max(y)))
-    function: x**2 - y**2
-    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
@@ -324,13 +321,8 @@ class Neither_X_nor_Y_extreme(Interaction):
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
         return func
-   
-class Both_X_Y_average(Interaction):
-    """
-    Both_X_Y_average : Response is high if X and Y are average
-    operator: (min(x) < x < max(x)) & (min(y) < y < max(y))
-    function: (max(x)**2 - x**2)*(max(y)**2-y**2)
-    """
+#both_X_Y_average    
+class both_X_Y_average(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'both {self.x.name} and {self.y.name} average'
@@ -340,13 +332,8 @@ class Both_X_Y_average(Interaction):
     def calc(self):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
         return func
-   
+#X_like_Y    
 class X_like_Y(Interaction):
-    """
-    X_like_Y: Response is high if X is like Y
-    operator: ((x == min(x)) & (y == min(y))) | ((x == max(x)) & (y == max(y)))
-    function: -(x-y)**2
-    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} like {self.y.name}'
@@ -356,13 +343,8 @@ class X_like_Y(Interaction):
     def calc(self):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
         return func
-
+# Sum_X_Y
 class Sum_X_Y(Interaction):
-    """
-    Sum_X_Y: Response is high if the sum of Y and X is high
-    operator: x + y 
-    function: x + y
-    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Sum of {self.x.name} and {self.y.name} high'
@@ -372,13 +354,8 @@ class Sum_X_Y(Interaction):
     def calc(self):
         func = np.array(self.x+self.y).reshape(-1,1)
         return func
- 
+#Difference_X_Y   
 class Difference_X_Y(Interaction):
-    """
-    Difference_X_Y: Response is high if the difference between X and Y is high
-    operator: x - y
-    function: x - y
-    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference of {self.x.name} and {self.y.name} high'
@@ -1165,7 +1142,7 @@ class LBM_Regression:
 
             
 
-            Plot_surface(a.values.flatten(), b.values.flatten(), Y[c].values.flatten())
+            plot_surface(a.values.flatten(), b.values.flatten(), Y[c].values.flatten())
             
             """
             fig = plt.figure(figsize=(40,40))
