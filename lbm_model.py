@@ -219,7 +219,7 @@ class X_and_not_Y(Interaction):
 class X_if_Y(Interaction):
     """
     X_if_Y: Response is high if X is high when Y is not low
-    operator: x*(y != 0)
+    operator: x & (y != 0)
     function: x*(|min(y)|+y)
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
@@ -235,7 +235,7 @@ class X_if_Y(Interaction):
 class X_if_not_Y(Interaction):
     """
     X_if_not_Y: Response is high if X is high when Y is low
-    operator: x*(y < max(y))
+    operator: x & (y < max(y))
     function: x*(max(y)-y)
     """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
@@ -250,6 +250,11 @@ class X_if_not_Y(Interaction):
 
 #X_if_Y_average         
 class X_if_Y_average(Interaction):
+    """
+    X_if_Y_average: Response is high if X is high when Y is average
+    operator: x & (min(y) < y < max(y))
+    function: x / [sqrt((max(y) + |min(y)|) / (500 + y**2))]
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name} average'
@@ -261,6 +266,11 @@ class X_if_Y_average(Interaction):
         return func
 #X_average_if_Y
 class X_average_if_Y(Interaction):
+    """
+    X_average_if_Y: Response is high if X is average and Y is high
+    operator: (min(x) < x < max(x)) & y
+    function: (y + |min(y)|) / [sqrt( (max(y) + |min(x)|) / (200 + x**2))]
+    """
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if {self.y.name}'
@@ -270,7 +280,7 @@ class X_average_if_Y(Interaction):
     def calc(self):
         func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
         return func
-#X_average_if_not_Y
+
 class X_average_if_not_Y(Interaction):
     def __init__(self, x, y, max_x, min_x, max_y, min_y):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
