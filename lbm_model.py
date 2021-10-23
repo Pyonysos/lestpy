@@ -82,6 +82,18 @@ class Interaction:
     the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
     Then it will build model using the fewest number of features or their interactions that best explains the response.
     As the interactions describes real physical effects, the user have the control to exclude interactions that are not relevant in their case study.
+    
+    new interaction can be computed by creating a child class:
+    class CustomizedInteraction(Interaction):
+        def __init__(self, x, y, max_x, min_x, max_y, min_y):
+            super().__init__(x, y, max_x, min_x, max_y, min_y)
+            self.name = f'customized interaction between {self.x.name} and {self.y.name}'
+            self.interaction = self.__class__.__name__
+            interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        
+        def calc(self):
+            func = np.array(customized fonction).reshape(-1,1)
+        return func
     """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
