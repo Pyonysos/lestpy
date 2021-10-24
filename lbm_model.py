@@ -1,8 +1,12 @@
 """
 TO DO:
--Create a tool "outlier detection" -> in progress
-|-- Complete Mahalanobis distance -> in progress
-|-- Complete z-score -> in progress
+
+Create a tool for feature analysis:
+|--plot hist to view distribution
+|--exp domain description
+|--Create a tool "outlier detection" -> in progress
+    |-- Complete Mahalanobis distance -> in progress
+    |-- Complete z-score -> in progress
 
 -Translate the interaction in english -> in progress
 
