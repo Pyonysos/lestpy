@@ -1300,11 +1300,11 @@ class Outliers_detection:
         
         return self.mahal_d.diagonal()
 
-    def z_score(self, plot:bool=True):
+    def z_score(self, ddof=0, plot:bool=True):
         df=PD.DataFrame()
         for col in self.X.columns:
             col_zscore = col + "_zscore"
-            df[col_zscore] = (df[col] - df[col].mean())/df[col].std(ddof=0)
-            df.head()
+            df[col_zscore] = (df[col] - df[col].mean())/df[col].std(ddof=ddof)
+              df["outlier"] = (abs(df[col + "_zscore"])>3).astype(int)
         return df
 
