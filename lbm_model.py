@@ -1002,7 +1002,7 @@ class LBM_Regression:
             #plt.suptitle('Overview of the modelisation')
         return
 
-    
+    """
     def print_in_file(self, title: str ='title'):
                 
 
@@ -1040,15 +1040,12 @@ class LBM_Regression:
             document.add_heading('Targets', level=2, style='List Number')
             document.add_heading('Best Trials', level=2, style='List Number')
             document.add_heading('Pareto', level=2, style='List Number')
-        
-
         document.add_picture('monty-truth.png', width=Inches(1.25))
-
-
         document.save(f'{title}.docx')
 
     def print_in_file(self):
-        return #fichier avec données enregistrées et formatées 
+        return #fichier avec données enregistrées et formatées
+    """
 
     def __extract_features(self, experimental_domain: dict):
         screened_var=[]
