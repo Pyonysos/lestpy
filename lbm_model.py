@@ -1303,6 +1303,8 @@ class OutliersInspection:
 
     def z_score(self, ddof:int=0, plot:bool=True)-> DataFrame:
         """
+        https://medium.com/clarusway/z-score-and-how-its-used-to-determine-an-outlier-642110f3b482
+        
         z_score: calculate the z-score of the targets.
             z-score = (y - mean(y)) / std(y)
         z-score is the number of standard deviations away from the mean the data point is.
