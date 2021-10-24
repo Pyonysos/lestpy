@@ -1,10 +1,10 @@
 """
 TO DO:
--Create a tool "outlier detection"
-|-- Complete Mahalanobis distance
-|-- Complete z-score
+-Create a tool "outlier detection" -> in progress
+|-- Complete Mahalanobis distance -> in progress
+|-- Complete z-score -> in progress
 
--Translate the interaction in english
+-Translate the interaction in english -> in progress
 
 -implement decorator for time measurement
 
@@ -29,6 +29,7 @@ from mpl_toolkits import mplot3d #usefull ?
 
 import scipy as sp
 from scipy.stats import dirichlet
+
 
 import statsmodels.api as sm
 from statsmodels.stats import outliers_influence
@@ -1242,7 +1243,7 @@ class LBM_Regression:
 
         return Sobol_list
 
-class Outliers_detection:
+class OutliersInspection:
     def __init__(self, other:object):
         self.other=other
         self.frame_list=[]
@@ -1300,11 +1301,60 @@ class Outliers_detection:
         
         return self.mahal_d.diagonal()
 
-    def z_score(self, ddof=0, plot:bool=True):
-        df=PD.DataFrame()
-        for col in self.X.columns:
+    def z_score(self, ddof:int=0, plot:bool=True)-> DataFrame:
+        """
+        z_score: calculate the z-score of the targets.
+            z-score = (y - mean(y)) / std(y)
+        z-score is the number of standard deviations away from the mean the data point is.
+        
+        params:
+            ddof: degre of freedom
+        returns:
+            DataFrame
+        """
+        df = pd.DataFrame()
+        for col in self.other.y.columns:
             col_zscore = col + "_zscore"
-            df[col_zscore] = (df[col] - df[col].mean())/df[col].std(ddof=ddof)
-              df["outlier"] = (abs(df[col + "_zscore"])>3).astype(int)
+            df[col_zscore] = (y[col] - y[col].mean())/y[col].std(ddof=ddof)
+        """
+        df["outlier"] = (abs(df[col + "_zscore"])>3).astype(int)
+        print("number of outliers = " + str(df.outlier.value_counts()[1]))
+        """
         return df
 
+"""
+    def z_score(df, col, min_z=1, max_z = 5, step = 0.1, print_list = False):
+        z_scores = df["Data_zscore"]
+        threshold_list = []
+        for threshold in np.arange(min_z, max_z, step):
+            threshold_list.append((threshold, len(np.where(z_scores > threshold)[0])))
+            df_outlier = pd.DataFrame(threshold_list, columns = ['threshold', 'outlier_count'])
+            df_outlier['pct'] = (df_outlier.outlier_count - df_outlier.outlier_count.shift(-1))/df_outlier.outlier_count*100
+        plt.plot(df_outlier.threshold, df_outlier.outlier_count)
+        best_treshold = round(df_outlier.iloc[df_outlier.pct.argmax(), 0],2)
+        outlier_limit = int(df[col].dropna().mean() + (df[col].dropna().std()) * df_outlier.iloc[df_outlier.pct.argmax(), 0])
+        percentile_threshold = stats.percentileofscore(df[col].dropna(), outlier_limit)
+        plt.vlines(best_treshold, 0, df_outlier.outlier_count.max(), 
+               colors="r", ls = ":"
+              )
+        plt.annotate("Zscore : {}\nValue : {}\nPercentile : {}".format(best_treshold, outlier_limit,(np.round(percentile_threshold, 3),np.round(100-percentile_threshold, 3))),(best_treshold, df_outlier.outlier_count.max()/2))
+        #plt.show()
+        if print_list:
+            print(df_outlier)
+        return (plt, df_outlier, best_treshold, outlier_limit, percentile_threshold)
+ """
+ """
+    def outlier_inspect(df, col, min_z=1, max_z = 5, step = 0.2, max_hist = None, bins = 50):
+        fig = plt.figure(figsize=(20, 6))
+        fig.suptitle(col, fontsize=16)
+        plt.subplot(1,3,1)
+        if max_hist == None:
+            sns.histplot(df[col], kde=False, bins = 50,color="r")
+        else :
+            sns.distplot(df[df[col]<=max_hist][col], kde=False, bins = 50)
+        plt.subplot(1,3,2)
+        sns.boxplot(df[col])
+        plt.subplot(1,3,3)
+        z_score_inspect = z_score(df, col, min_z=min_z, max_z = max_z, step = step)
+        plt.show()
+"""
