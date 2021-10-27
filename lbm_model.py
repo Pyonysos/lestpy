@@ -21,7 +21,7 @@ Create a tool for feature analysis:
 DEPENDENCIES
 """
 
-from pandas.core.frame import DataFrame #usefull?
+#from pandas.core.frame import DataFrame #usefull?
 #progressively remove sklearn imports
 from sklearn import model_selection
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
