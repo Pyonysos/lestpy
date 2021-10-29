@@ -1318,7 +1318,7 @@ class OutliersInspection:
         df = pd.DataFrame()
         for col in self.other.y.columns:
             col_zscore = col + "_zscore"
-            df[col_zscore] = (y[col] - y[col].mean())/y[col].std(ddof=ddof)
+            df[col_zscore] = (self.other.y[col] - self.other.y[col].mean())/self.other.y[col].std(ddof=ddof)
         """
         df["outlier"] = (abs(df[col + "_zscore"])>3).astype(int)
         print("number of outliers = " + str(df.outlier.value_counts()[1]))
@@ -1345,8 +1345,8 @@ class OutliersInspection:
         if print_list:
             print(df_outlier)
         return (plt, df_outlier, best_treshold, outlier_limit, percentile_threshold)
- """
- """
+"""
+"""
     def outlier_inspect(df, col, min_z=1, max_z = 5, step = 0.2, max_hist = None, bins = 50):
         fig = plt.figure(figsize=(20, 6))
         fig.suptitle(col, fontsize=16)
