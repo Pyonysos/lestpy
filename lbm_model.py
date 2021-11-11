@@ -112,6 +112,13 @@ class Interaction:
         def calc(self):
             func = np.array(customized fonction).reshape(-1,1)
         return func
+        
+        
+        alternative:
+        def add_interaction(name, Interaction, (x,y, func)):
+            return=type(name, Interaction, 
+            {'calc': lambda self,x,y: func})
+          
     """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
