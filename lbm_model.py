@@ -8,6 +8,9 @@ Create a tool for feature analysis:
     |-- Complete Mahalanobis distance -> in progress
     |-- Complete z-score -> in progress
 
+plot corrélation iconography with graph:
+https://stackoverflow.com/questions/23184306/draw-network-and-grouped-vertices-of-the-same-community-or-partition
+
 -Translate the interaction in english -> in progress
 
 -implement decorator for time measurement
