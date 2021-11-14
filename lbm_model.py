@@ -39,11 +39,11 @@ import statsmodels.api as sm
 from statsmodels.stats import outliers_influence
 
 import inspect
-
+"""
 #for print_in_file()
 from docx import Document
 from docx.shared import Inches
-
+"""
 import matplotlib.pyplot as plt
 import plotly.figure_factory as ff
 import plotly.express as px
@@ -1105,7 +1105,7 @@ class LBM_Regression:
             fig.show()
         return self
     
-    def RS_plot(self, X: DataFrame = None, Y: DataFrame = None, experimental_domain: dict=None, size: int = 10000):
+    def RS_plot(self, X: object = None, Y: object = None, experimental_domain: dict=None, size: int = 10000):
         #If variables are undefined by user, get the variables that were use for modelling
         if self.with_fit:
             if X is None:
@@ -1302,7 +1302,7 @@ class OutliersInspection:
         
         return self.mahal_d.diagonal()
 
-    def z_score(self, ddof:int=0, plot:bool=True)-> DataFrame:
+    def z_score(self, ddof:int=0, plot:bool=True)-> object:
         """
         https://medium.com/clarusway/z-score-and-how-its-used-to-determine-an-outlier-642110f3b482
         
