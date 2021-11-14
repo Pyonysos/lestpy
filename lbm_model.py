@@ -7,6 +7,12 @@ Create a tool for feature analysis:
 |--Create a tool "outlier detection" -> in progress
     |-- Complete Mahalanobis distance -> in progress
     |-- Complete z-score -> in progress
+https://python-course.eu/oop/dynamically-creating-classes-with-type.php
+https://likegeeks.com/3d-plotting-in-python/
+
+plot correlation iconography with graph:
+https://stackoverflow.com/questions/23184306/draw-network-and-grouped-vertices-of-the-same-community-or-partition
+https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-distributed-on-the-surface-of-a-unit-sphere
 
 -Translate the interaction in english -> in progress
 
@@ -112,6 +118,13 @@ class Interaction:
         def calc(self):
             func = np.array(customized fonction).reshape(-1,1)
         return func
+        
+        
+        alternative:
+        def add_interaction(name, Interaction, (x,y, func)):
+            return=type(name, Interaction, 
+            {'calc': lambda self,x,y: func})
+          
     """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
