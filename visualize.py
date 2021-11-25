@@ -4,6 +4,17 @@ import pandas as pd
 import numpy as np
 
 
+#define plot style to render consistant figures between one another
+class PlotStyle():
+    def __init__(self, projet_name, cmap, figsize, pov):
+        '''
+        project_name: string, all figures will be saved with a name starting with project_name value
+        cmap: string, name of the matplotlib colormap to be used throughout the figures
+        pov: tuple for azimut and elevation for '3d projection'
+        '''
+        pass
+
+
 def graph(features, responses=None, render= adj_matrix, plot=True):
     '''
     graph:
