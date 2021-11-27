@@ -2,7 +2,7 @@
 
 ## Overview
 ### Why
-### list of modules:
+### List of modules:
 * lbm_model
 * visualize
 * outlier
@@ -13,7 +13,6 @@
 ### How to
 
 ## Contributing
-
 There are many ways to support the development of lestpy:
 
 * **File an issue** on Github, if you encounter problems, have a proposal, etc.
@@ -22,8 +21,7 @@ There are many ways to support the development of lestpy:
 
 
 ## Links
-
-* The source code and issue tracker of this package is to be found on **Github**: [pyonysos/lestpy].
+The source code and issue tracker of this package is to be found on **Github**: [pyonysos/lestpy].
 
 
 [pyonysos/lestpy]: https://github.com/pyonysos/lestpy
