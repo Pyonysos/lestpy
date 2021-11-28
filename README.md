@@ -2,7 +2,9 @@
 
 ## Overview
 ### Why
-### List of modules:
+Feature engineering.
+
+### List of modules
 * lbm_model
 * visualize
 * outlier
