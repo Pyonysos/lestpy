@@ -15,9 +15,16 @@ class PlotStyle():
         pass
 
 
-def graph(features, threshold: float = 0.2, responses=None, render= 'adj_matrix', plot=True):
+def corr_graph(features, threshold: float = 0.2, responses=None, render= 'adj_matrix', plot=True):
     '''
     graph:
+    -identifier 3 variables faiblement correlees comme bases
+    -identifier la plus forte correlation
+    -calculer toutes les correlations partielles par rapport a toutes les variables disponibles
+      si pcorr>seuil -> lien trace.
+    
+    -calculer la repartition pour dilater ou compresser le graph
+    
     
     params:
         dataset: DataFrame
