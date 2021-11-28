@@ -15,7 +15,7 @@ class PlotStyle():
         pass
 
 
-def graph(features, responses=None, render= adj_matrix, plot=True):
+def graph(features, threshold: float = 0.2, responses=None, render= 'adj_matrix', plot=True):
     '''
     graph:
     
@@ -27,6 +27,8 @@ def graph(features, responses=None, render= adj_matrix, plot=True):
 
     return: None
     '''
+    
+    
     result=None
 
     return result
