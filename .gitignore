@@ -1,1 +1,8 @@
 __pycache__/lbm_model.cpython-38.pyc
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# dotenv environment variables file
+.env
+.env.test
