@@ -541,9 +541,9 @@ class LBM_Regression:
         rAC = np.array(reg).reshape(reg.shape[0], 1)
         rBC = np.array(reg).reshape(1, reg.shape[0])
 
-        matrice = np.array(correlation_matrix)
+        matrix = np.array(correlation_matrix)
 
-        numerator = np.subtract(matrice, rAC.dot(rBC))
+        numerator = np.subtract(matrix, rAC.dot(rBC))
 
         #avoid negative values in sqrt
         rAC_sqr = np.square(rAC)
@@ -557,12 +557,12 @@ class LBM_Regression:
         denominator[denominator==0] = 1000
 
 
-        correlation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
+        pcorrelation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
 
-        for i,j in range(correlation_matrix.shape[0], correlation_matrix.shape[0]):
-            correlation_matrix.iloc[i,j] = 1
+        for i,j in range(pcorrelation_matrix.shape[0], pcorrelation_matrix.shape[0]):
+            pcorrelation_matrix.iloc[i,j] = 1
 
-        return correlation_matrix
+        return pcorrelation_matrix
     
     
     def __model_evaluation(self, mat_res):
