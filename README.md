@@ -2,7 +2,7 @@
 
 ## Overview
 ### Why
-Feature engineering.
+Lestpy is aimed to model regression problems with a bunch of logical interactions. This approach is an alternative way to describe the relationship between the features and the targets.
 
 ### List of modules
 * lbm_model
@@ -12,7 +12,16 @@ Feature engineering.
 ## Getting Started
 ### Installation
 
+You can install LestPy from [PyPI]():
+
+```sh
+    python -m pip install lestpy
+```
+
 ### How to
+
+## Use
+Lestpy is designed to be used similarly to sklearn modelization classes and their methods (fit(), transform(), predict(), ...)
 
 ## Contributing
 There are many ways to support the development of lestpy:
