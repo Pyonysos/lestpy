@@ -1,14 +1,16 @@
 from setuptools import setup, find_packages
 import os
+import codecs
 
 VERSION = '0.0.1'
 DESCRIPTION = 'Regression model with logical interactions'
 
-# The directory containing this file
-HERE = pathlib.Path(__file__).parent
 
-# The text of the README file
-README = (HERE / "README.md").read_text()
+here = os.path.abspath(os.path.dirname(__file__))
+
+with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as f:
+    README = "\n" + f.read()
+
 
 # Setting up
 setup(
@@ -25,7 +27,7 @@ setup(
     keywords=['python', 'modeling'],
     url = 'https://github.com/Pyonysos/lestpy',
     classifiers=[
-        "Development Status :: 2 - Alpha",
+        "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Science/Research",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
