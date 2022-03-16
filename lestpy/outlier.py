@@ -1,6 +1,9 @@
-class OutliersInspection:
+# list of imports
+
+
+class Outliers_Inspection:
     '''
-    OutliersInspection:
+    Outliers_Inspection:
     
         arguments:
             other: Object
@@ -10,10 +13,13 @@ class OutliersInspection:
             - cooks_distance()
                 
                 params:
+                    self
+                    plot : Boolean, default True. If True, the 
                 
                 return:
             
             - mahalanobis_distance()
+            
                 D**2 = (x-µ)**T.C**(-1).(x-µ)
                 where, 
                 - D**2        is the square of the Mahalanobis distance. 
