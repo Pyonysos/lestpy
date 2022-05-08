@@ -54,10 +54,11 @@ def plot_surface(a,b,c, **kwargs):
     
     return: None
     """
-    if hasattr(kwargs, "cmap"):
-        cmap=kwargs['cmap']
-    else:
-        cmap='Viridis'
+    cmap = kwargs.get('cmap', 'Viridis')
+    #if hasattr(kwargs, "cmap"):
+    #    cmap=kwargs['cmap']
+    #else:
+    #    cmap='Viridis'
     
     fig = plt.figure(figsize=(40,40))
     ax = plt.axes(projection='3d')
