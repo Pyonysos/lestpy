@@ -674,7 +674,8 @@ class LBM_Regression:
         
         self.X = X.reset_index(drop=True)
         self.X_start = self.X
-        self.y = y.reset_index(drop=True)
+        if y:
+            self.y = y.reset_index(drop=True)
         
         #Step1: set autointeraction
         try:
