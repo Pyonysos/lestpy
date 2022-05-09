@@ -61,37 +61,6 @@ from SALib.analyze import sobol
 
 import time
 
-"""
-Functions
-"""
-def plot_surface(a,b,c, **kwargs):
-    """
-    plot_surface: plot response surface in function of features a and b
-    
-    params:
-    a: 1D array (n,)
-    b: 1D array (n,)
-    c: 1D array (n,)
-    kwargs
-    
-    return: None
-    """
-    if hasattr(kwargs, "cmap"):
-        cmap=kwargs['cmap']
-    else:
-        cmap='Viridis'
-    
-    fig = plt.figure(figsize=(40,40))
-    ax = plt.axes(projection='3d')
-    Cmap = plt.get_cmap(cmap)  
-    surf = ax.plot_trisurf(a.ravel(), b.ravel(), c, cmap=Cmap, antialiased=True, edgecolor='none')     
-    fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
-    ax.set_xlabel(f'{a.name}')
-    ax.set_ylabel(f'{b.name}')
-    ax.set_zlabel(f'{c.name}')
-    ax.set_title(f'Interaction: {c.name}')
-    fig.show()
-
 #interaction_dict will store all the data concerning the use of interactions
 interaction_dict={}
 
@@ -756,6 +725,7 @@ class LBM_Regression:
             self.model[i]['results'] = y[i]
             self.model[i]['metrics'] = []
             
+            print(self.rescaled_features,  y[i])
             self.__compute_correlation_matrix(self.rescaled_features,  y[i])
             
             for reg in range(max_regressors_nb):
