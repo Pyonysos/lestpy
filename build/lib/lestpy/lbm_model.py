@@ -931,7 +931,7 @@ class LBM_Regression:
 
                 #rendu
             res = pd.concat((sample, prediction, desirability), axis=1)
-
+            
             output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3)), axis=1)
             output.columns = ['Mean of the 5 best results', 'Best result']
             

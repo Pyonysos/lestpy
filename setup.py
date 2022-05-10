@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
-import os
+import pathlib
 
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 DESCRIPTION = 'Regression model with logical interactions'
 
 # The directory containing this file
@@ -25,7 +25,7 @@ setup(
     keywords = ['python', 'modeling', 'regression'],
     url = 'https://github.com/Pyonysos/lestpy',
     classifiers = [
-        "Development Status :: 2 - Alpha",
+        "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Science/Research",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",

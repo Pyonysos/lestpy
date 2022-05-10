@@ -101,7 +101,7 @@ class Outliers_Inspection:
         
         return self.mahal_d.diagonal()
 
-    def z_score(self, ddof:int=0, plot:bool=True):
+    def z_score(self, ddof:int=0, plot:bool=True)-> DataFrame:
         """
         https://medium.com/clarusway/z-score-and-how-its-used-to-determine-an-outlier-642110f3b482
         
