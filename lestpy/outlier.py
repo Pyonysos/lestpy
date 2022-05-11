@@ -1,5 +1,8 @@
 # list of imports
-
+from statsmodels.stats import outliers_influence
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy as sp
 
 class Outliers_Inspection:
     '''
@@ -45,17 +48,17 @@ class Outliers_Inspection:
     '''
 
     def __init__(self, other:object):
-        self.other=other
-        self.frame_list=[]
-        for i in self.other.y:
+        self.other = other
+        self.frame_list = []
+        for i in self.other.model.keys():
             self.outliers = outliers_influence.OLSInfluence(self.other.model[i]['model_final'])
             self.frame_list.append(self.outliers.summary_frame())
-        return self
         
     def cooks_distance(self, plot: bool =True):
-        for i in self.other.y:
+        for i in self.other.model.keys():
             threshold = 4/self.outliers.summary_frame().shape[0]
             
+            print("<!> in development <!>")
             print(f'threshold (4/n) = {round(threshold,3)}' )
             outliers_list= []
             for n in range(0,self.outliers.summary_frame().shape[0]):
@@ -73,20 +76,22 @@ class Outliers_Inspection:
         plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
         plt.show()
         
-        return self.frame_list
+        #return self.frame_list
     
     def mahalanobis_distance(self, plot:bool=True):
-      #To Do
+        #To Do
         """
         mahalanobis_distance:
         D**2 = (x-µ)**T.C**(-1).(x-µ)
         where, 
-        - D**2        is the square of the Mahalanobis distance. 
+        - D**2       is the square of the Mahalanobis distance. 
         - x          is the vector of the observation (row in a dataset), 
         - µ          is the vector of mean values of independent variables (mean of each column), 
-        - C**(-1)     is the inverse covariance matrix of independent variables.
+        - C**(-1)    is the inverse covariance matrix of independent variables.
         """
-        for i in self.orner.y:
+        cov = None
+
+        for i in self.other.model.keys():
             diff_x_u = self.other.X - np.mean(self.other.X, axis=0)
             if not cov:
                 cov = np.cov(self.other.X.values.T)
@@ -96,10 +101,10 @@ class Outliers_Inspection:
         #ajouter Mahalanobis a outlier summary
         
         if plot:
-          print("Not yet implemented")
+          print("<!> in development <!>")
           plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
         
-        return self.mahal_d.diagonal()
+        #return self.mahal_d.diagonal()
 
     def z_score(self, ddof:int=0, plot:bool=True):
         """
