@@ -95,22 +95,27 @@ class Interaction:
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         self.x = x
         self.y = y
-        if max_x == None:
-            self.max_x = np.max(self.x)
-        else:
-            self.max_x = max_x
-        if max_y == None:
-            self.max_y = np.max(self.y)
-        else:
-            self.max_y = max_y
-        if min_x == None:
-            self.min_x = np.min(self.x)
-        else:
-            self.min_x = min_x
-        if min_y == None:
-            self.min_y = np.min(self.y)
-        else:
-            self.min_y = min_y
+        self.max_x = np.max(self.x) if not max_x else max_x
+        self.max_y = np.max(self.y) if not max_y else max_y
+        self.min_x = np.min(self.x) if not min_x else min_x
+        self.min_y = np.min(self.y) if not min_y else min_y
+
+        # if max_x == None:
+        #     self.max_x = np.max(self.x) if not max_x else max_x
+        # else:
+        #     self.max_x = max_x
+        # if max_y == None:
+        #     self.max_y = np.max(self.y)
+        # else:
+        #     self.max_y = max_y
+        # if min_x == None:
+        #     self.min_x = np.min(self.x)
+        # else:
+        #     self.min_x = min_x
+        # if min_y == None:
+        #     self.min_y = np.min(self.y)
+        # else:
+        #     self.min_y = min_y
 
         if not hasattr(self.x, 'name') or not hasattr(self.y, 'name'):
             self.x = pd.DataFrame(self.x, name='x')
@@ -133,9 +138,13 @@ class Interaction:
         
         return None
         """
-        if x is None:
+        # if x is None:
+        #     x = np.linspace(-1, 1, 100)
+        # if y is None:
+        #     y = np.linspace(-1, 1, 100)
+        if not x:
             x = np.linspace(-1, 1, 100)
-        if y is None:
+        if not y:
             y = np.linspace(-1, 1, 100)
             
         x, y = np.meshgrid(x, y)
@@ -379,8 +388,9 @@ class LBM_Regression:
         self.with_variable_instant = False
         return
     
-    def __autointeraction_param(self, allow_autointeraction):    #obsolete    
-        return 1 if allow_autointeraction==True else 0
+    # deprecated to be removed  
+    # def __autointeraction_param(self, allow_autointeraction):      
+    #     return 1 if allow_autointeraction==True else 0
     
     def __compute_interaction(self, X, autointeraction: bool, interaction_list: list):
         """
@@ -394,7 +404,9 @@ class LBM_Regression:
             
         returns: dataframe of the features and all the calculated interactions
         """
+        # remove indexes
         new_X = X.reset_index(drop=True)
+
         for i in range(X.shape[1]):
             for j in range(i+1-autointeraction, X.shape[1]):
                 for interaction in interaction_list:
@@ -421,6 +433,7 @@ class LBM_Regression:
         
         returns: object
         """
+        
         #normalisation des données
         if scaler =='robust':
             self.transformer = RobustScaler()
@@ -437,7 +450,9 @@ class LBM_Regression:
         """
         transformation of the matrix into a modified unit called "variable/instant"
         params:
-        returns:
+            X : DataFrame
+        returns: 
+            var_inst : DataFrame of transformed values
         """
         eye = np.eye(X.shape[0], X.shape[0])
 
@@ -451,13 +466,19 @@ class LBM_Regression:
         self.with_variable_instant = True
         self.Shape = X.shape[0]
         
-        variable = np.divide(np.subtract(X*self.Shape, self.Coef), self.denomin)
+        var_inst = np.divide(np.subtract(X*self.Shape, self.Coef), self.denomin)
 
-        return variable
+        return var_inst
     
     def __unscale_data(self, rescaled_X):
         """
-        inverse transformation of __variable_instant 
+        inverse transformation of __variable_instant
+        if  __variable_instant transformation has not been performed, it returns the unchanged matrix
+        
+        params: 
+            rescaled_X : DataFrame of  transformed matrix
+        return:
+            unscaled_X : DataFrame of unscaled data 
         """
         
         if self.with_variable_instant:
@@ -468,22 +489,26 @@ class LBM_Regression:
         return unscaled_X
     
     def __compute_correlation_matrix(self, X, y):
+        '''
+        compute the correlation matrix
+        '''
+        
         if hasattr(y, 'name'):
             name = y.name
         else :
-            name=y.columns
+            name = y.columns
 
-        #mat =np.corrcoef(pd.concat([X, y], axis=1).T)
+        #deprecated : mat = np.corrcoef(pd.concat([X, y], axis=1).T)
         mat = np.ma.corrcoef(pd.concat([X, y], axis=1).T)
         cols = X.columns.tolist() + [name]
         
         self.corr_X = pd.DataFrame(mat, columns= cols)
-        #return
+
         
     def __feature_selection(self, res, corr_X, M, res_list, threshold):
     
         #identifier la meilleure variable explicative
-        corr_X= np.abs(corr_X)
+        corr_X = np.abs(corr_X)
         
         #best_interaction = corr_X.iloc[-1, : -1].idxmax(axis=1)
         best_interaction = corr_X.iloc[-1, : -1].idxmax()
@@ -929,10 +954,10 @@ class LBM_Regression:
 
             desirability = self.__desirability_DS(target, target_weights, prediction)
 
-                #rendu
             res = pd.concat((sample, prediction, desirability), axis=1)
             
-            output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3)), axis=1)
+            #output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3)), axis=1)
+            output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(), :], 3)), axis=1)
             output.columns = ['Mean of the 5 best results', 'Best result']
             
             print(output)
