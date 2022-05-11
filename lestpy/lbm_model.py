@@ -718,7 +718,7 @@ class LBM_Regression:
         return self
     
 
-    def fit(self, X=None, y=None max_regressors_nb: int = 10, threshold: float = 0.2):
+    def fit(self, X=None, y=None, max_regressors_nb: int = 10, threshold: float = 0.2):
         
         """
         fit method :
