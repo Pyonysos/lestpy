@@ -93,6 +93,9 @@ class Interaction:
           
     """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
+        '''
+        initialising x, y and their minima and maxima
+        '''
         self.x = pd.DataFrame(x, name='x') if not hasattr(x, 'name') else x
         self.y = pd.DataFrame(y, name='y') if not hasattr(y, 'name') else y
         
@@ -715,7 +718,7 @@ class LBM_Regression:
         return self
     
 
-    def fit(self, max_regressors_nb: int = 10, threshold: float = 0.2):
+    def fit(self, X=None, y=None max_regressors_nb: int = 10, threshold: float = 0.2):
         
         """
         fit method :
@@ -732,6 +735,9 @@ class LBM_Regression:
         #Mesure du temps de calcul
         start = time.time()
         
+        if not X:
+          X= self.rescaled_features
+        
         if type(threshold) is not float:
             raise TypeError('threshold must be a float between 0 and 1')
         
@@ -740,6 +746,8 @@ class LBM_Regression:
         
         self.model={}
         
+        if y:
+            self.y = y
         try:
             y = self.y.to_frame()
         except:
@@ -751,11 +759,13 @@ class LBM_Regression:
             self.model[i]['results'] = y[i]
             self.model[i]['metrics'] = []
 
-            self.__compute_correlation_matrix(self.rescaled_features,  y[i])
+            #self.__compute_correlation_matrix(self.rescaled_features,  y[i])
+            self.__compute_correlation_matrix(X,  y[i])
             
             for reg in range(max_regressors_nb):
                 #identification of the best interaction
-                self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
+                #self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
+                self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, X, self.model[i]['selected_features'], threshold)
                 self.corr_X = self.__partial_correlations(self.corr_X, self.model[i]['selected_features'][-1][0])
 
                 self.model[i]['metrics'].append(self.__model_evaluation(self.model[i]['results']))
@@ -793,7 +803,8 @@ class LBM_Regression:
         #select and pass kwargs to fit method
         fit_args = [key for key in inspect.signature(self.fit).parameters.items()]
         fit_dict = {key: params.pop(key) for key in dict(params) if key in fit_args}
-        self.fit(**fit_dict)
+        #self.fit(**fit_dict)
+        self.fit(X = self.rescaled_features, **fit_dict)
         return self
     
     def predict(self, X): 
