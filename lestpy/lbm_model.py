@@ -93,8 +93,9 @@ class Interaction:
           
     """
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
-        self.x = x
-        self.y = y
+        self.x = pd.DataFrame(x, name='x') if not hasattr(x, 'name') else x
+        self.y = pd.DataFrame(y, name='y') if not hasattr(y, 'name') else y
+        
         self.max_x = np.max(self.x) if not max_x else max_x
         self.max_y = np.max(self.y) if not max_y else max_y
         self.min_x = np.min(self.x) if not min_x else min_x
@@ -117,9 +118,8 @@ class Interaction:
         # else:
         #     self.min_y = min_y
 
-        if not hasattr(self.x, 'name') or not hasattr(self.y, 'name'):
-            self.x = pd.DataFrame(self.x, name='x')
-            self.y = pd.DataFrame(self.y, name='y')
+        #if not hasattr(self.x, 'name') or not hasattr(self.y, 'name'):
+            
      
     def compute(self):
         """
