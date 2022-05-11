@@ -389,8 +389,8 @@ class LBM_Regression:
         return
     
     # deprecated to be removed  
-    # def __autointeraction_param(self, allow_autointeraction):      
-    #     return 1 if allow_autointeraction==True else 0
+    def __autointeraction_param(self, allow_autointeraction):      
+         return 1 if allow_autointeraction==True else 0
     
     def __compute_interaction(self, X, autointeraction: bool, interaction_list: list):
         """
@@ -972,6 +972,17 @@ class LBM_Regression:
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
         print(stats)
         return
+
+    def print_model(self):
+        for i in self.model.keys():
+            print(f'model for target "{i}"')
+            table = {'Coefficient': [], 'Parameter': [], 'Std Error' : []}
+            for coef, param, std_er in  zip(self.model[i]['model_final'].params, self.model[i]['selected_features'][:self.model[i]['nb_predictor']], self.model[i]['model_final'].bse):
+                table['Coefficient'].append(coef.round(3))
+                table['Parameter'].append(param[0])
+                table['Std Error'].append(std_er.round(3))
+        results = pd.DataFrame(table)
+        print(results)
 
     def residues_hist(self, y):
         plt.scatter(y, self.model[y.name]['y_pred']-y)
