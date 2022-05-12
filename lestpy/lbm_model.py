@@ -155,7 +155,14 @@ class Interaction:
         y=pd.DataFrame(y.ravel(), columns=["y"])
         z = self.calc()
         plot_surface(x,y,z)
-        
+
+
+    '''
+    in progress
+    '''   
+    def add_interaction(self, name, Interaction, x, y, func):
+        return type(name, Interaction, {'calc': lambda self,x,y: func})
+
 
 class X_xor_Y(Interaction):
     """
@@ -987,6 +994,8 @@ class LBM_Regression:
     def print_model(self):
         for i in self.model.keys():
             print(f'model for target "{i}"')
+            print('\n')
+            print(f'The value of {i} is high if...')
             table = {'Coefficient': [], 'Parameter': [], 'Std Error' : []}
             for coef, param, std_er in  zip(self.model[i]['model_final'].params, self.model[i]['selected_features'][:self.model[i]['nb_predictor']], self.model[i]['model_final'].bse):
                 table['Coefficient'].append(coef.round(3))
