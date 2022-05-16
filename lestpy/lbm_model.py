@@ -59,7 +59,7 @@ import time
 
 
 #interaction_dict will store all the data concerning the use of interactions
-interaction_dict={}
+#interaction_dict={}
 
 """
 Definition of the interactions
@@ -92,43 +92,42 @@ class Interaction:
             {'calc': lambda self,x,y: func})
           
     """
+
+    interaction_list = ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
+                        'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+                        ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']
+    interaction_dict={}
+
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         '''
         initialising x, y and their minima and maxima
         '''
-        self.x = pd.DataFrame(x, name='x') if not hasattr(x, 'name') else x
-        self.y = pd.DataFrame(y, name='y') if not hasattr(y, 'name') else y
+        self.x = pd.Series(x, name='x') if not hasattr(x, 'name') else x
+        self.y = pd.Series(y, name='y') if not hasattr(y, 'name') else y
         
         self.max_x = np.max(self.x) if not max_x else max_x
         self.max_y = np.max(self.y) if not max_y else max_y
         self.min_x = np.min(self.x) if not min_x else min_x
         self.min_y = np.min(self.y) if not min_y else min_y
 
-        # if max_x == None:
-        #     self.max_x = np.max(self.x) if not max_x else max_x
-        # else:
-        #     self.max_x = max_x
-        # if max_y == None:
-        #     self.max_y = np.max(self.y)
-        # else:
-        #     self.max_y = max_y
-        # if min_x == None:
-        #     self.min_x = np.min(self.x)
-        # else:
-        #     self.min_x = min_x
-        # if min_y == None:
-        #     self.min_y = np.min(self.y)
-        # else:
-        #     self.min_y = min_y
-
-        #if not hasattr(self.x, 'name') or not hasattr(self.y, 'name'):
-            
-     
+    @classmethod       
+    def get_interaction_list(cls):
+        return cls.interaction_list
+    
+    @classmethod
+    def get_interaction_dict(cls):
+        return cls.interaction_dict
+    
+    @classmethod
+    def add_interaction_dict(cls, name, x, y, interaction):
+        cls.interaction_dict[name] = {'x' : x, 'y' : y, 'interaction' : interaction}
+    
     def compute(self):
         """
         compute the interaction
         return a dataframe named according to the interaction, with its values
         """
+        self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         return pd.DataFrame(self.calc(), columns=[self.name])
         
     def display_interaction(self, x=None, y=None):
@@ -157,12 +156,21 @@ class Interaction:
         plot_surface(x,y,z)
 
 
-    '''
-    in progress
-    '''   
-    def add_interaction(self, name, Interaction, x, y, func):
-        return type(name, Interaction, {'calc': lambda self,x,y: func})
+def interaction_builder(name, func):
 
+        def init_method(self, x, y, max_x, min_x, max_y, min_y):
+            self.__class__.__bases__[0].__init__(x, y, max_x, min_x, max_y, min_y)
+            self.interaction = self.__class__.__name__
+            print(f'{self.__class__.__name__} inherited from {self.__class__.__bases__[0]}')
+            self.name = f'{self.interaction} {self.x.name} {self.y.name}'
+        
+        def calc(self):
+            return func(self.x, self.y)
+            
+        Interaction.interaction_list.append(name)
+        print(Interaction.interaction_list)
+        
+        return type(name, (Interaction,), {'__init__' : init_method, 'calc': calc})
 
 class X_xor_Y(Interaction):
     """
@@ -174,7 +182,8 @@ class X_xor_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} xor {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #Interaction.interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         
     def calc(self):
         func = np.array(np.multiply(-self.x, self.y)).reshape(-1,1)
@@ -190,7 +199,7 @@ class X_or_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or {self.y.name}'
         self.interaction = self.__class__.__name__       
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
@@ -206,7 +215,7 @@ class X_or_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
@@ -222,7 +231,7 @@ class X_and_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and {self.y.name}'
         self.interaction = self.__class__.__name__ 
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
@@ -238,7 +247,7 @@ class X_and_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.max_y-self.y)).reshape(-1,1)
@@ -254,7 +263,7 @@ class X_if_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.min_y)+self.y)).reshape(-1,1)
@@ -270,7 +279,7 @@ class X_if_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.max_y)-self.y)).reshape(-1,1)
@@ -286,7 +295,7 @@ class X_if_Y_average(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name} average'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y))/500+np.square(self.y))).reshape(-1,1)
@@ -302,7 +311,7 @@ class X_average_if_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
@@ -313,7 +322,7 @@ class X_average_if_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
@@ -325,7 +334,7 @@ class Neither_X_nor_Y_extreme(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
@@ -336,7 +345,7 @@ class both_X_Y_average(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'both {self.x.name} and {self.y.name} average'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
@@ -347,7 +356,7 @@ class X_like_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} like {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
@@ -358,7 +367,7 @@ class Sum_X_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Sum of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x+self.y).reshape(-1,1)
@@ -369,7 +378,7 @@ class Difference_X_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x-self.y).reshape(-1,1)
@@ -653,10 +662,11 @@ class LBM_Regression:
         return desirability
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list =['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
-                                    'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
-                                    'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
-                                   ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
+                  interaction_list: list = None):
+        #   ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
+        #                     'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
+        #                     'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+        #                    ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
         """
         transform method :
         
@@ -672,6 +682,10 @@ class LBM_Regression:
             self
         
         """
+        if not interaction_list:
+            interaction_list = Interaction.get_interaction_list()
+            print(interaction_list)
+
         if scaler not in ['robust', 'standard', 'minmax']:
             raise ValueError(f'{scaler} method is not implemented,\n  Implemented methods "robust, minmax and standard"')
         
@@ -701,21 +715,18 @@ class LBM_Regression:
             raise NotImplementedError('computation of the interactions failed')
         
         #Step3: Rescale data
-        try:
-            if variable_instant:
-                try:
-                    self.rescaled_features = pd.DataFrame(self.__variable_instant(self.features), columns = self.features.columns)
-                    print('method = variable instant')
-                except:
-                    raise NotImplementedError('rescaling variable_instant data failed')
-            else:
-                try:
-                    self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
-                    print(f'method = {scaler}')
-                except:
-                    raise NotImplementedError(f'rescaling interactions with {scaler} method failed')
-        except:
-            raise NotImplementedError('rescaling data failed')
+        if variable_instant:
+            try:
+                self.rescaled_features = pd.DataFrame(self.__variable_instant(self.features), columns = self.features.columns)
+                print('method = variable instant')
+            except:
+                raise NotImplementedError('rescaling variable_instant data failed')
+        else:
+            try:
+                self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
+                print(f'method = {scaler}')
+            except:
+                raise NotImplementedError(f'rescaling interactions with {scaler} method failed')
             
         end = time.time()
         print(f'calculé en {round(end-start, 3)} secondes')
@@ -833,14 +844,14 @@ class LBM_Regression:
             #computation of the selected and enginered features of the model
             for element in self.model[i]['selected_features'][:self.model[i]['nb_predictor']]:
                 try :
-                    func = interaction_dict[element[0]]['interaction']
-                    x_df= transformed_X[interaction_dict[element[0]]["x"].name]
-                    y_df= transformed_X[interaction_dict[element[0]]["y"].name]
+                    func = Interaction.interaction_dict[element[0]]['interaction']
+                    x_df= transformed_X[Interaction.interaction_dict[element[0]]["x"].name]
+                    y_df= transformed_X[Interaction.interaction_dict[element[0]]["y"].name]
 
-                    max_x = np.max(transformed_X_start[interaction_dict[element[0]]["x"].name])
-                    min_x = np.min(transformed_X_start[interaction_dict[element[0]]["x"].name])
-                    max_y = np.max(transformed_X_start[interaction_dict[element[0]]["y"].name])
-                    min_y = np.min(transformed_X_start[interaction_dict[element[0]]["y"].name])
+                    max_x = np.max(transformed_X_start[Interaction.interaction_dict[element[0]]["x"].name])
+                    min_x = np.min(transformed_X_start[Interaction.interaction_dict[element[0]]["x"].name])
+                    max_y = np.max(transformed_X_start[Interaction.interaction_dict[element[0]]["y"].name])
+                    min_y = np.min(transformed_X_start[Interaction.interaction_dict[element[0]]["y"].name])
                     col = eval(func)(x_df, y_df, max_x=max_x, min_x=min_x, max_y=max_y, min_y=min_y).compute()
                 except KeyError:
                     col = transformed_X[element[0]]
