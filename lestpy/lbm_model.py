@@ -159,18 +159,32 @@ class Interaction:
 def interaction_builder(name, func):
 
         def init_method(self, x, y, max_x, min_x, max_y, min_y):
-            self.__class__.__bases__[0].__init__(x, y, max_x, min_x, max_y, min_y)
+            super(self.__class__, self).__init__(x, y, max_x, min_x, max_y, min_y)
             self.interaction = self.__class__.__name__
             print(f'{self.__class__.__name__} inherited from {self.__class__.__bases__[0]}')
             self.name = f'{self.interaction} {self.x.name} {self.y.name}'
         
-        def calc(self):
+        def set_interaction():
+            return self.__class__.__name__
+
+        def calc():
             return func(self.x, self.y)
             
         Interaction.interaction_list.append(name)
         print(Interaction.interaction_list)
         
-        return type(name, (Interaction,), {'__init__' : init_method, 'calc': calc})
+        return type(name, (Interaction,), {
+            #methods
+            '__init__' : init_method, 
+            'calc': calc,
+            
+            #attribute
+            #'name' : f'{self.interaction} {self.x.name} {self.y.name}',
+            'interaction': set_interaction,
+            #'x' : self.x,
+            #'y' : self.y
+            })
+
 
 class X_xor_Y(Interaction):
     """
