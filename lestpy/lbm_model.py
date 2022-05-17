@@ -122,9 +122,6 @@ class Interaction:
         """
         self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         return pd.DataFrame(self.calc(), columns=[self.name])
-        
-    def formula(self):
-        print(self.formula)
     
     def display_interaction(self, x=None, y=None):
         """
