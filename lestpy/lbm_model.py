@@ -53,18 +53,28 @@ class Interaction:
     """
     Interaction class
 
-    interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters on an output value.
-    the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
+    interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters to explain the evolution of a target value.
+    the LBM_Regression will calculate all the possible interactions between 2 features with the input features.
     Then it will build model using the fewest number of features or their interactions that best explains the response.
     As the interactions describes real physical effects, the user have control to exclude interactions that are not relevant in their case study
     New interactions can be define by creating an instance of the InteractionBuilder providing the name and the function allowing the calculation of the interaction
-          
+    
+    Attributes:
+    
+    Class Attributes:
+      - interaction_list: List of the interaction names that will be used in the modelisation. Interactions can be removed. On the contrary, interaction can be added by using the class InteractionBuilder
+      - interaction_dict: dictionary that keeps track of the calculations of the interactions
+    
+    Methods:
+    
+    Class Methods:
+      
     """
 
     interaction_list = ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
                         'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
-                        ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']
-    interaction_dict={}
+                        'X_like_Y', 'Sum_X_Y', 'Difference_X_Y']
+    interaction_dict = {}
 
     def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
         '''
@@ -100,7 +110,7 @@ class Interaction:
     
     def display_interaction(self, x=None, y=None):
         """
-        display_interaction is a method to help visualize how the interaction is modeled by ifs function. if x and y are not given, it creates vectors of hundred numbers between -1 and 1 and calculates the values of the interaction.
+        display_interaction is a method to help visualize how the interaction is modeled by its function. if x and y are not given, it creates vectors of numbers between -1 and 1 and calculates the values of the interaction.
         x : pandas dataframe, values of feature x
         y : pandas dataframe, values of feature y
         
@@ -111,18 +121,17 @@ class Interaction:
         dis = Display(None)
         dis.display_interaction(self.__class__.__name__)
 
-
-#def interaction_builder(name: str, func):
 class InteractionBuilder:
         '''
         InteractionBuilder
 
-        allow usage of custom interaction
-            name : string
-            func : lambda expression or function that will be computed on features
+        allows integration of custom interaction
+        params:
+            name : string, name given to the interaction
+            func : lambda expression or function that will be applied on features to calculate the effect of the interaction. the function will thus handles in the process two pandas Series corresponding to the interacting features.
 
         function = lambda x,y : 
-        lestpy.lbm_model.interaction_builder(name, func)
+        lestpy.lbm_model.InteractionBuilder(name, func)
 
         example :
         function = lambda x,y : x**2 + y**2
