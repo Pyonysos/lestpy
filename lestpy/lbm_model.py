@@ -1,5 +1,7 @@
 """
 TO DO:
+Improve documentation and type hinting using module typing
+
 Create a tool for feature analysis:
 |--plot hist to view distribution
 |--Create a tool "outlier detection"
