@@ -1,12 +1,10 @@
 """
 TO DO:
+Improve documentation and type hinting using module typing
 
 Create a tool for feature analysis:
-|--remove obsolete imports
 |--plot hist to view distribution
-|--exp domain description
-|--Create a tool "outlier detection" -> in progress
-    |-- Complete Mahalanobis distance -> in progress
+|--Create a tool "outlier detection"
     |-- Complete z-score -> in progress
 https://python-course.eu/oop/dynamically-creating-classes-with-type.php
 https://likegeeks.com/3d-plotting-in-python/
@@ -15,11 +13,7 @@ plot correlation iconography with graph:
 https://stackoverflow.com/questions/23184306/draw-network-and-grouped-vertices-of-the-same-community-or-partition
 https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-distributed-on-the-surface-of-a-unit-sphere
 
--Translate the interaction in english -> in progress
-
 -implement decorator for time measurement
-
--Use black package to improve code readability and respect the pythonic style of coding
 
 """
 
@@ -28,7 +22,6 @@ https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-
 DEPENDENCIES
 """
 
-#from pandas.core.frame import DataFrame #usefull?
 #progressively remove sklearn imports
 from sklearn import model_selection
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
@@ -36,30 +29,24 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
 
-from mpl_toolkits import mplot3d #usefull ?
-
-import scipy as sp
 from scipy.stats import dirichlet
 
+from SALib.sample import saltelli
+from SALib.analyze import sobol
 
 import statsmodels.api as sm
 from statsmodels.stats import outliers_influence
 
 import inspect
+from typing import Union, Callable
 
 import matplotlib.pyplot as plt
 
 import pandas as pd
 import numpy as np
 
-from SALib.sample import saltelli
-from SALib.analyze import sobol
-
 import time
 
-
-#interaction_dict will store all the data concerning the use of interactions
-interaction_dict={}
 
 """
 Definition of the interactions
@@ -68,69 +55,71 @@ class Interaction:
     """
     Interaction class
 
-    interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters on an output value.
-    the LBM_Regression will calculate all the interactions of 2 features possible with the input features.
+    interactions are mathematical functions that aim to describe the logical interactions that can occur between two parameters to explain the evolution of a target value.
+    the LBM_Regression will calculate all the possible interactions between 2 features with the input features.
     Then it will build model using the fewest number of features or their interactions that best explains the response.
-    As the interactions describes real physical effects, the user have the control to exclude interactions that are not relevant in their case study.
+    As the interactions describes real physical effects, the user have control to exclude interactions that are not relevant in their case study
+    New interactions can be define by creating an instance of the InteractionBuilder providing the name and the function allowing the calculation of the interaction
     
-    new interaction can be computed by creating a child class:
-    class CustomizedInteraction(Interaction):
-        def __init__(self, x, y, max_x, min_x, max_y, min_y):
-            super().__init__(x, y, max_x, min_x, max_y, min_y)
-            self.name = f'customized interaction between {self.x.name} and {self.y.name}'
-            self.interaction = self.__class__.__name__
-            interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
-        
-        def calc(self):
-            func = np.array(customized fonction).reshape(-1,1)
-        return func
-        
-        
-        alternative:
-        def add_interaction(name, Interaction, (x,y, func)):
-            return=type(name, Interaction, 
-            {'calc': lambda self,x,y: func})
-          
+    Attributes:
+    
+    Class Attributes:
+      - interaction_list: List of the interaction names that will be used in the modelisation. Interactions can be removed. On the contrary, interaction can be added by using the class InteractionBuilder
+      - interaction_dict: dictionary that keeps track of the calculations of the interactions
+    
+    Methods:
+    
+    Class Methods:
+      
     """
-    def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
-        self.x = x
-        self.y = y
-        self.max_x = np.max(self.x) if not max_x else max_x
-        self.max_y = np.max(self.y) if not max_y else max_y
-        self.min_x = np.min(self.x) if not min_x else min_x
-        self.min_y = np.min(self.y) if not min_y else min_y
 
-        # if max_x == None:
-        #     self.max_x = np.max(self.x) if not max_x else max_x
-        # else:
-        #     self.max_x = max_x
-        # if max_y == None:
-        #     self.max_y = np.max(self.y)
-        # else:
-        #     self.max_y = max_y
-        # if min_x == None:
-        #     self.min_x = np.min(self.x)
-        # else:
-        #     self.min_x = min_x
-        # if min_y == None:
-        #     self.min_y = np.min(self.y)
-        # else:
-        #     self.min_y = min_y
+    interaction_list = ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
+                        'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+                        'X_like_Y', 'Sum_X_Y', 'Difference_X_Y']
+    interaction_dict = {}
 
-        if not hasattr(self.x, 'name') or not hasattr(self.y, 'name'):
-            self.x = pd.DataFrame(self.x, name='x')
-            self.y = pd.DataFrame(self.y, name='y')
-     
-    def compute(self):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
+        '''
+        initialising x, y and their minima and maxima
+        '''
+        self.x = pd.Series(data= np.array(x).ravel(), name='x') if hasattr(x, 'name') != True else x
+        self.y = pd.Series(data= np.array(y).ravel(), name='y') if hasattr(y, 'name') != True else y
+        
+        self.max_x = np.max(self.x) if max_x is None else max_x
+        self.max_y = np.max(self.y) if max_y is None else max_y
+        self.min_x = np.min(self.x) if min_x is None else min_x
+        self.min_y = np.min(self.y) if min_y is None else min_y
+
+    @classmethod       
+    def get_interaction_list(cls) -> list:
+        return cls.interaction_list
+    
+    @classmethod
+    def remove_interactions(cls, unwanted_interactions : Union[list, str, set]) -> list:
+        if type(unwanted_interactions) is str:
+            unwanted_interactions = [unwanted_interactions]
+        cls.interaction_dict =  list(set(cls.interaction_dict) - set(unwanted_interactions))
+        return cls.interaction_list
+    
+    @classmethod
+    def get_interaction_dict(cls) -> dict:
+        return cls.interaction_dict
+    
+    @classmethod
+    def add_interaction_dict(cls, name: str, x: pd.Series, y: pd.Series, interaction: str) -> None:
+        cls.interaction_dict[name] = {'x' : x, 'y' : y, 'interaction' : interaction}
+    
+    def compute(self) -> pd.DataFrame:
         """
         compute the interaction
         return a dataframe named according to the interaction, with its values
         """
+        self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         return pd.DataFrame(self.calc(), columns=[self.name])
-        
-    def display_interaction(self, x=None, y=None):
+    
+    def display_interaction(self, x: pd.Series=None, y: pd.Series=None):
         """
-        display_interaction is a method to help visualize how the interaction is modeled by ifs function. if x and y are not given, it creates vectors of hundred numbers between -1 and 1 and calculates the values of the interaction.
+        display_interaction is a method to help visualize how the interaction is modeled by its function. if x and y are not given, it creates vectors of numbers between -1 and 1 and calculates the values of the interaction.
         x : pandas dataframe, values of feature x
         y : pandas dataframe, values of feature y
         
@@ -138,21 +127,48 @@ class Interaction:
         
         return None
         """
-        # if x is None:
-        #     x = np.linspace(-1, 1, 100)
-        # if y is None:
-        #     y = np.linspace(-1, 1, 100)
-        if not x:
-            x = np.linspace(-1, 1, 100)
-        if not y:
-            y = np.linspace(-1, 1, 100)
-            
-        x, y = np.meshgrid(x, y)
-        x=pd.DataFrame(x.ravel(), columns=["x"])
-        y=pd.DataFrame(y.ravel(), columns=["y"])
-        z = self.calc()
-        plot_surface(x,y,z)
+        dis = Display(None)
+        dis.display_interaction(self.__class__.__name__)
+
+class InteractionBuilder:
+        '''
+        InteractionBuilder
+
+        allows integration of custom interaction
+        params:
+            name : string, name given to the interaction
+            func : lambda expression or function that will be applied on features to calculate the effect of the interaction. the function will thus handles in the process two pandas Series corresponding to the interacting features.
+
+        function = lambda x,y : 
+        lestpy.lbm_model.InteractionBuilder(name, func)
+
+        example :
+        function = lambda x,y : x**2 + y**2
+        name = 'double_square'
+        lestpy.lbm_model.InteractionBuilder(name, function)
+
+        The new interaction will be automatically added to the list of interactions
+        '''
         
+        def __init__(self, name: str, func: Callable[[pd.Series, pd.Series], pd.Series]) -> None:
+            def init_method(self, x, y, max_x, min_x, max_y, min_y):
+                super(self.__class__, self).__init__(x, y, max_x, min_x, max_y, min_y)
+                self.interaction = self.__class__.__name__
+                self.name = f'{self.interaction} {self.x.name} {self.y.name}'
+
+            def calc(self) -> pd.Series:
+                return func(self.x, self.y)
+                
+            Interaction.interaction_list.append(name)
+            print(Interaction.interaction_list)
+        
+            globals()[name] = type(name, (Interaction,), {
+                    #methods
+                    '__init__' : init_method, 
+                    '__module__': name,
+                    'calc': calc,
+                    })
+
 
 class X_xor_Y(Interaction):
     """
@@ -160,11 +176,12 @@ class X_xor_Y(Interaction):
     operator: x^y
     function: -x*y
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} xor {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #Interaction.interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         
     def calc(self):
         func = np.array(np.multiply(-self.x, self.y)).reshape(-1,1)
@@ -176,11 +193,11 @@ class X_or_Y(Interaction):
     operator: x|y
     function: -(max(x)-x)*(max(y)-y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or {self.y.name}'
-        self.interaction = self.__class__.__name__       
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        self.interaction = self.__class__.__name__     
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
@@ -192,11 +209,11 @@ class X_or_not_Y(Interaction):
     operator: x|(not y)
     function: -(max(x)-x)*(|min(y)|+y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
@@ -208,11 +225,11 @@ class X_and_Y(Interaction):
     operator: x&y
     function: (|min(x)|+x)*(|min(y)|+y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and {self.y.name}'
         self.interaction = self.__class__.__name__ 
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
@@ -224,11 +241,11 @@ class X_and_not_Y(Interaction):
     operator: x&(not y)
     function: (|min(x)|+x)*(max(y)-y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.max_y-self.y)).reshape(-1,1)
@@ -240,11 +257,11 @@ class X_if_Y(Interaction):
     operator: x & (y != 0)
     function: x*(|min(y)|+y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.min_y)+self.y)).reshape(-1,1)
@@ -256,11 +273,11 @@ class X_if_not_Y(Interaction):
     operator: x & (y < max(y))
     function: x*(max(y)-y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.max_y)-self.y)).reshape(-1,1)
@@ -272,14 +289,14 @@ class X_if_Y_average(Interaction):
     operator: x & (min(y) < y < max(y))
     function: x / [sqrt((max(y) + |min(y)|) / (500 + y**2))]
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name} average'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
-        func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y))/500+np.square(self.y))).reshape(-1,1)
+        func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y)) / 500 + np.square(self.y))).reshape(-1,1)
         return func
 
 class X_average_if_Y(Interaction):
@@ -288,78 +305,112 @@ class X_average_if_Y(Interaction):
     operator: (min(x) < x < max(x)) & y
     function: (y + |min(y)|) / [sqrt( (max(y) + |min(x)|) / (200 + x**2))]
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
+        func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
         return func
 
 class X_average_if_not_Y(Interaction):
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    """
+    X_average_if_not_Y: Response is high if X is average and Y is low
+    operator: (min(x) < x < max(x)) & min(y)
+    function: (max(y) - y) / [sqrt( (max(x) + |min(x)|) / (200 + x**2))]
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if not {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
-        func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x))/200+np.square(self.x))).reshape(-1,1)
+        func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
         return func
-        
-#Neither_X_nor_Y_extreme
+       
+
 class Neither_X_nor_Y_extreme(Interaction):
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    """
+    Neither_X_nor_Y_extreme: Response is high if neither X nor Y are low or high values
+    operator: (min(x) < x < max(x)) & (min(y) < y < max(y))
+    function: - (x**2 + y**2)
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
         return func
-#both_X_Y_average    
+
+
 class both_X_Y_average(Interaction):
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    """
+    both_X_Y_average: Response is high if both X nor Y are average
+    operator: (min(x) << x << max(x)) & (min(y) << y << max(y))
+    function: (max(x)**2 - x**2) * (max(y)**2 - y**2)
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'both {self.x.name} and {self.y.name} average'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
         return func
-#X_like_Y    
-class X_like_Y(Interaction):
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+
+
+class X_like_Y(Interaction):  
+    """
+    X_like_Y: Response is high if X evolves like Y
+    operator:   x = y
+    function:   (x - y)**2
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} like {self.y.name}'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
         return func
-# Sum_X_Y
+
+
 class Sum_X_Y(Interaction):
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    """
+    Sum_X_Y: Response is high if the sum of X and Y is high
+    operator:   x + y
+    function:   x + y
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Sum of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x+self.y).reshape(-1,1)
         return func
-#Difference_X_Y   
+
+
 class Difference_X_Y(Interaction):
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    """
+    Difference_X_Y: Response is high if the difference between X and Y is high
+    operator:   x - y
+    function:   x - y
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
-        interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x-self.y).reshape(-1,1)
@@ -386,11 +437,9 @@ class LBM_Regression:
         self.with_fit = False
         self.with_transform = False
         self.with_variable_instant = False
-        return
-    
-    # deprecated to be removed  
+
     def __autointeraction_param(self, allow_autointeraction):      
-         return 1 if allow_autointeraction==True else 0
+         return 1 if allow_autointeraction == True else 0
     
     def __compute_interaction(self, X, autointeraction: bool, interaction_list: list):
         """
@@ -643,10 +692,11 @@ class LBM_Regression:
         return desirability
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list =['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
-                                    'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
-                                    'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
-                                   ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
+                  interaction_list: list = None):
+        #   ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
+        #                     'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
+        #                     'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+        #                    ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
         """
         transform method :
         
@@ -662,6 +712,10 @@ class LBM_Regression:
             self
         
         """
+        if not interaction_list:
+            interaction_list = Interaction.get_interaction_list()
+            print(interaction_list)
+
         if scaler not in ['robust', 'standard', 'minmax']:
             raise ValueError(f'{scaler} method is not implemented,\n  Implemented methods "robust, minmax and standard"')
         
@@ -691,21 +745,18 @@ class LBM_Regression:
             raise NotImplementedError('computation of the interactions failed')
         
         #Step3: Rescale data
-        try:
-            if variable_instant:
-                try:
-                    self.rescaled_features = pd.DataFrame(self.__variable_instant(self.features), columns = self.features.columns)
-                    print('method = variable instant')
-                except:
-                    raise NotImplementedError('rescaling variable_instant data failed')
-            else:
-                try:
-                    self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
-                    print(f'method = {scaler}')
-                except:
-                    raise NotImplementedError(f'rescaling interactions with {scaler} method failed')
-        except:
-            raise NotImplementedError('rescaling data failed')
+        if variable_instant:
+            try:
+                self.rescaled_features = pd.DataFrame(self.__variable_instant(self.features), columns = self.features.columns)
+                print('method = variable instant')
+            except:
+                raise NotImplementedError('rescaling variable_instant data failed')
+        else:
+            try:
+                self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
+                print(f'method = {scaler}')
+            except:
+                raise NotImplementedError(f'rescaling interactions with {scaler} method failed')
             
         end = time.time()
         print(f'calculé en {round(end-start, 3)} secondes')
@@ -715,7 +766,7 @@ class LBM_Regression:
         return self
     
 
-    def fit(self, max_regressors_nb: int = 10, threshold: float = 0.2):
+    def fit(self, X=None, y=None, max_regressors_nb: int = 10, threshold: float = 0.2):
         
         """
         fit method :
@@ -732,6 +783,9 @@ class LBM_Regression:
         #Mesure du temps de calcul
         start = time.time()
         
+        if not X:
+          X= self.rescaled_features
+        
         if type(threshold) is not float:
             raise TypeError('threshold must be a float between 0 and 1')
         
@@ -740,6 +794,8 @@ class LBM_Regression:
         
         self.model={}
         
+        if y:
+            self.y = y
         try:
             y = self.y.to_frame()
         except:
@@ -751,11 +807,13 @@ class LBM_Regression:
             self.model[i]['results'] = y[i]
             self.model[i]['metrics'] = []
 
-            self.__compute_correlation_matrix(self.rescaled_features,  y[i])
+            #self.__compute_correlation_matrix(self.rescaled_features,  y[i])
+            self.__compute_correlation_matrix(X,  y[i])
             
             for reg in range(max_regressors_nb):
                 #identification of the best interaction
-                self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
+                #self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
+                self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, X, self.model[i]['selected_features'], threshold)
                 self.corr_X = self.__partial_correlations(self.corr_X, self.model[i]['selected_features'][-1][0])
 
                 self.model[i]['metrics'].append(self.__model_evaluation(self.model[i]['results']))
@@ -793,7 +851,8 @@ class LBM_Regression:
         #select and pass kwargs to fit method
         fit_args = [key for key in inspect.signature(self.fit).parameters.items()]
         fit_dict = {key: params.pop(key) for key in dict(params) if key in fit_args}
-        self.fit(**fit_dict)
+        #self.fit(**fit_dict)
+        self.fit(X = self.rescaled_features, **fit_dict)
         return self
     
     def predict(self, X): 
@@ -815,14 +874,14 @@ class LBM_Regression:
             #computation of the selected and enginered features of the model
             for element in self.model[i]['selected_features'][:self.model[i]['nb_predictor']]:
                 try :
-                    func = interaction_dict[element[0]]['interaction']
-                    x_df= transformed_X[interaction_dict[element[0]]["x"].name]
-                    y_df= transformed_X[interaction_dict[element[0]]["y"].name]
+                    func = Interaction.interaction_dict[element[0]]['interaction']
+                    x_df= transformed_X[Interaction.interaction_dict[element[0]]["x"].name]
+                    y_df= transformed_X[Interaction.interaction_dict[element[0]]["y"].name]
 
-                    max_x = np.max(transformed_X_start[interaction_dict[element[0]]["x"].name])
-                    min_x = np.min(transformed_X_start[interaction_dict[element[0]]["x"].name])
-                    max_y = np.max(transformed_X_start[interaction_dict[element[0]]["y"].name])
-                    min_y = np.min(transformed_X_start[interaction_dict[element[0]]["y"].name])
+                    max_x = np.max(transformed_X_start[Interaction.interaction_dict[element[0]]["x"].name])
+                    min_x = np.min(transformed_X_start[Interaction.interaction_dict[element[0]]["x"].name])
+                    max_y = np.max(transformed_X_start[Interaction.interaction_dict[element[0]]["y"].name])
+                    min_y = np.min(transformed_X_start[Interaction.interaction_dict[element[0]]["y"].name])
                     col = eval(func)(x_df, y_df, max_x=max_x, min_x=min_x, max_y=max_y, min_y=min_y).compute()
                 except KeyError:
                     col = transformed_X[element[0]]
@@ -976,6 +1035,8 @@ class LBM_Regression:
     def print_model(self):
         for i in self.model.keys():
             print(f'model for target "{i}"')
+            print('\n')
+            print(f'The value of {i} is high if...')
             table = {'Coefficient': [], 'Parameter': [], 'Std Error' : []}
             for coef, param, std_er in  zip(self.model[i]['model_final'].params, self.model[i]['selected_features'][:self.model[i]['nb_predictor']], self.model[i]['model_final'].bse):
                 table['Coefficient'].append(coef.round(3))
@@ -983,53 +1044,7 @@ class LBM_Regression:
                 table['Std Error'].append(std_er.round(3))
         results = pd.DataFrame(table)
         print(results)
-
-    def residues_hist(self, y):
-        plt.scatter(y, self.model[y.name]['y_pred']-y)
-        plt.xlabel('residual distance')
-        plt.ylabel('observation number')
-        plt.title('Distribution of the residuals')
-        return
-    
-    def fit_scatter(self, y):
-        plt.scatter(y, self.model[y.name]['y_pred'])
-        plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='r')
-        plt.xlabel(f'measured values of {self.model[y.name]["results"].iloc[:,0].name}')
-        plt.ylabel(f'predicted values of {self.model[y.name]["results"].iloc[:,0].name}')
-        plt.title('Measured vs. predicted values')
-        return
-    
-    def metrics_curve(self, y):
-        plt.plot(np.arange(1, len(self.model[y.name]['metrics'])+1), self.model[y.name]['metrics'])
-        plt.plot(self.model[y.name]['nb_predictor'], self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1], linestyle='none', marker='o', label='Optimal number of predictors')
-        plt.legend()
-        plt.xlabel('number of predictors')
-        plt.ylabel('Q² values')
-        plt.title('Evolution of Q² with increasing number of predictors')
-        return
-    
-    def describe(self, X, y):
-        #retourne score, histogramme des résidus et diagonale
-        try:
-            y = self.y.to_frame()
-        except:
-            y = self.y
-        
-        for i in y:
-            print(i)
-            self.fitting_score(y[i])
-            plt.figure()
-            self.fit_scatter(y[i])
-            plt.show()
-            plt.figure()
-            self.residues_hist(y[i])
-            plt.show()
-            plt.figure()
-            self.metrics_curve(y[i])
-            plt.show()
-            #plt.suptitle('Overview of the modelisation')
-        return
-
+   
     def __extract_features(self, experimental_domain: dict):
         screened_var=[]
         set_mix_var =[]
@@ -1071,14 +1086,232 @@ class LBM_Regression:
         
         
         return var, Ternary_X[self.X_start.columns], Results
-        
 
-    def TM_plot(self, experimental_domain: dict, mix: list = None, alpha: list=None, size: int = 1000, random_state: int=None, ncontours: int=20):
+
+
+
+
+
+'''
+VISUALIZATION TOOLS
+'''
+
+#define plot style to render consistant figures between one another
+class DisplayStyle():
+    def __init__(self, projet_name, cmap, figsize, pov):
+        '''
+        project_name: string, all figures will be saved with a name starting with project_name value
+        cmap: string, name of the matplotlib colormap to be used throughout the figures
+        pov: tuple for azimut and elevation for '3d projection'
+        '''
+        pass
+
+class Display:
+    def __init__(self, model):
+        '''
+        model = lbm_model
+        '''
+        self.model = model
+
+    def display_interaction(self, interaction, x=None, y=None):
+        """
+        display_interaction is a method to help visualize how the interaction is modeled by ifs function. if x and y are not given, it creates vectors of hundred numbers between -1 and 1 and calculates the values of the interaction.
+        x : pandas Series or numpy array, values of feature x
+        y : pandas Series or numpy array, values of feature y
+        
+        plot a surface of the interaction on x and y
+        
+        return None
+        """
+
+        if x is None:
+            x = np.linspace(-1, 1, 50)
+        if y is None:
+            y = np.linspace(-1, 1, 50)
+            
+        x, y = np.meshgrid(x, y)
+        x =  pd.Series(x.ravel(), name="x")
+        y =  pd.Series(y.ravel(), name="y")
+
+
+        interaction_instance = eval(interaction)(x, y, np.max(x), np.min(x), np.max(y), np.min(y))
+        res = interaction_instance.compute()
+        z = pd.Series(np.array(res).ravel(), name=res.columns[0])
+        
+        self.plot_surface(x, y, z)
+
+    def residues_hist(self, y):
+        plt.scatter(y, self.model[y.name]['y_pred']-y)
+        plt.xlabel('residual distance')
+        plt.ylabel('observation number')
+        plt.title('Distribution of the residuals')
+        return
+    
+    def fit_scatter(self, y):
+        plt.scatter(y, self.model[y.name]['y_pred'])
+        plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='r')
+        plt.xlabel(f'measured values of {self.model[y.name]["results"].iloc[:,0].name}')
+        plt.ylabel(f'predicted values of {self.model[y.name]["results"].iloc[:,0].name}')
+        plt.title('Measured vs. predicted values')
+        return
+    
+    def metrics_curve(self, y):
+        plt.plot(np.arange(1, len(self.model[y.name]['metrics'])+1), self.model[y.name]['metrics'])
+        plt.plot(self.model[y.name]['nb_predictor'], self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1], linestyle='none', marker='o', label='Optimal number of predictors')
+        plt.legend()
+        plt.xlabel('number of predictors')
+        plt.ylabel('Q² values')
+        plt.title('Evolution of Q² with increasing number of predictors')
+        return
+    
+    def describe(self, X=None, y=None):
+        #retourne score, histogramme des résidus et diagonale
+        if y is None:
+            y = self.model.y
+        if X is None:
+            X = self.model.X
+        
+        for i in y.keys():
+            print(i)
+            self.model.fitting_score(y[i])
+            plt.figure()
+            self.fit_scatter(y[i])
+            plt.show()
+            plt.figure()
+            self.residues_hist(y[i])
+            plt.show()
+            plt.figure()
+            self.metrics_curve(y[i])
+            plt.show()
+            #plt.suptitle('Overview of the modelisation')
+        return
+
+    def corr_graph(self, features, threshold: float = 0.2, responses=None, render= 'adj_matrix', plot=True):
+        '''
+        graph:
+        -identifier 3 variables faiblement correlees comme bases
+        -identifier la plus forte correlation
+        -calculer toutes les correlations partielles par rapport a toutes les variables disponibles
+        si pcorr>seuil -> lien trace.
+        
+        -calculer la repartition pour dilater ou compresser le graph
+        
+        
+        params:
+            dataset: DataFrame
+            responses: DataFrame
+            render:
+            plot: True
+
+        return: None
+        '''
+        result=None
+
+        return result
+
+    
+    def plot_surface(self, a,b,c, **kwargs):
+        """
+        plot_surface: plot response surface in function of features a and b
+        
+        params:
+        a: 1D array (n,)
+        b: 1D array (n,)
+        c: 1D array (n,)
+        kwargs
+        
+        return: None
+        """
+        # if hasattr(kwargs, "cmap"):
+        #     cmap=kwargs['cmap']
+        # else:
+        #     cmap='Viridis'
+        
+        fig = plt.figure(figsize=(15,15))
+        ax = plt.axes(projection='3d')
+
+        cmap = kwargs.get('cmap', 'viridis')
+
+        surf = ax.plot_trisurf(np.array(a).ravel(), np.array(b).ravel(), np.array(c).ravel(), antialiased=True, edgecolor='none', cmap = cmap, **kwargs)     
+        
+        fig.colorbar(surf, shrink=0.5, **kwargs)
+        ax.set_xlabel(f'{a.name}')
+        ax.set_ylabel(f'{b.name}')
+        ax.set_zlabel(f'{c.name}')
+        ax.set_title(f'Interaction: {c.name}')
+        fig.show()
+
+
+
+    def pareto_frontier(self, dataset, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
+
+            """
+            pareto_frontier: Extract from dataset the undominated datas according to objectives
+            
+            params:
+                dataset : pandas DataFrame of the data to analyze
+                objectives: list, names of the two features in the dataset to analyze. 
+                target: list
+                    'maximize' : the feature should be maximized
+                    'minimize' : the feature should be minimized
+                plot: boolean, 
+                    True: the pareto_frontier will be plotted using matplolib 
+
+            return:
+                p_frontX: list of the undominated datas of objectives[0] according to the target criteria
+                p_frontY: list of the undominated datas of objectives[1] according to the target criteria
+
+
+            according to: Jamie Bull | jamiebull1@gmail.com
+            https://oco-carbon.com/metrics/find-pareto-frontiers-in-python/
+            """
+            # Sort the list in either ascending or descending order of X
+            if target[0]=='maximize':
+                maxX = True
+            elif target[0]=='minimize':
+                maxX= False
+
+            maxY = False if target[1] == 'minimize' else True
+            
+            if len(objectives) > 2:
+                raise ValueError('Length of "objectives" should be 2.')
+
+            myList = sorted([[dataset[objectives[0]][i], dataset[objectives[1]][i]] for i in range(len(dataset[objectives[0]]))], reverse=maxX)
+            # Start the Pareto frontier with the first value in the sorted list
+            p_front = [myList[0]]    
+            # Loop through the sorted list
+            for pair in myList[1:]:
+                if maxY: 
+                    if pair[1] >= p_front[-1][1]: # Look for higher values of Y…
+                        p_front.append(pair) # … and add them to the Pareto frontier
+                else:
+                    if pair[1] <= p_front[-1][1]: # Look for lower values of Y…
+                        p_front.append(pair) # … and add them to the Pareto frontier
+            # Turn resulting pairs back into a list of Xs and Ys
+            p_frontX = [pair[0] for pair in p_front]
+            p_frontY = [pair[1] for pair in p_front]
+
+            mask = dataset[objectives[0]].isin(p_frontX)
+
+            if plot:
+                plt.scatter(dataset[objectives[0]], dataset[objectives[1]], alpha=0.5, c='lightgrey', label='trials')
+                plt.scatter(dataset[objectives[0]].mask(~mask), dataset[objectives[1]].mask(~mask), label='undominated trials')
+                # Then plot the Pareto frontier on top
+                plt.plot(p_frontX, p_frontY, c='r', label='pareto front')
+                plt.xlabel(dataset[objectives[0]].name)
+                plt.ylabel(dataset[objectives[1]].name)
+                plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+                plt.show()
+
+            return p_frontX, p_frontY
+
+    
+    def ternary_diagram(self, experimental_domain: dict, mix: list = None, alpha: list=None, size: int = 1000, random_state: int=None, ncontours: int=20):
         #generate the accurate data to be plot
         if mix is None:
-            if self.with_fit:
-                mix = self.mix
-        var, Ternary_X, results = self.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
+            if self.model.with_fit:
+                mix = self.model.mix
+        var, Ternary_X, results = self.model.__generate_ternary_matrix(experimental_domain, mix, alpha, size, random_state)
         
         plotted_var = np.divide(Ternary_X[var], Ternary_X[var].sum(axis=1).values.reshape(-1,1)) * 100
 
@@ -1086,27 +1319,28 @@ class LBM_Regression:
         for res in results:
             fig = ff.create_ternary_contour(np.array(plotted_var).T, np.array(results[res]).T, pole_labels=var, interp_mode='cartesian', colorscale='Viridis', showscale=True, ncontours=ncontours)
             fig.show()
-        return self
+        return model
+
     
-    def RS_plot(self, X: object = None, Y: object = None, experimental_domain: dict=None, size: int = 10000):
-        #If variables are undefined by user, get the variables that were use for modelling
-        if self.with_fit:
+    def response_surface(self, X: object = None, Y: object = None, experimental_domain: dict=None, size: int = 10000):
+        #If variables are not defined by user, get the variables that were use for modelling
+        if self.model.with_fit:
             if X is None:
-                X = self.X_start 
+                X = self.model.X_start 
             if Y is None:
-                Y= self.y
+                Y= self.model.y
             if experimental_domain is None:
-                experimental_domain = self.experimental_domain
+                experimental_domain = self.model.experimental_domain
         else : 
             #if fit method has not been used yet -> user must define X and Y
             if (X is None) or (Y is None):
-                raise ValueError('')
+                raise ValueError('X or Y must be defined if lbm_model.fit() has not been called yet')
         
         #List the variables to plot in the model
-        screened_var, *others = self.__extract_features(experimental_domain)
+        screened_var, *others = self.model.__extract_features(experimental_domain)
         
         #generate the data that will be plotted
-        X_complete = self.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
+        X_complete = self.model.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
         a, b = np.meshgrid(X_complete[screened_var[0]].values, X_complete[screened_var[1]].values)
         
         Plot_df= pd.DataFrame(np.ones(len(a.ravel()), X.complete.shape[1]), columns=X_complete.columns)
@@ -1122,17 +1356,14 @@ class LBM_Regression:
         
         #fill the columns with the fixed values
         Plot_df[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
-        #print(X_complete.describe())
         
         #Compute the output values of the data
-        Y = self.predict(Plot_df[self.X_start.columns])
+        Y = model.predict(Plot_df[model.X_start.columns])
 
         #Plot the surface for each target
         a,b = Plot_df[screened_var[0]].values, Plot_df[screened_var[0]].values
-        for c in Y:
-
-            
-
+        
+        for c in Y.keys():
             plot_surface(a.values.flatten(), b.values.flatten(), Y[c].values.flatten())
             
             """
@@ -1149,54 +1380,8 @@ class LBM_Regression:
                     
             fig.show()
             """
-    
-    def pareto_frontier(self, res, objectives: list, target: list = ['maximize', 'maximize'], plot: bool = True):
 
-        """
-        according to: Jamie Bull | jamiebull1@gmail.com
-        https://oco-carbon.com/metrics/find-pareto-frontiers-in-python/
-        """
-        # Sort the list in either ascending or descending order of X
-        if target[0]=='maximize':
-            maxX = True
-        elif target[0]=='minimize':
-            maxX= False
-
-        maxY = False if target[1] == 'minimize' else True
-        
-        if len(objectives) > 2:
-            raise ValueError('Length of "objectives" should be 2.')
-
-        myList = sorted([[res[objectives[0]][i], res[objectives[1]][i]] for i in range(len(res[objectives[0]]))], reverse=maxX)
-        # Start the Pareto frontier with the first value in the sorted list
-        p_front = [myList[0]]    
-        # Loop through the sorted list
-        for pair in myList[1:]:
-            if maxY: 
-                if pair[1] >= p_front[-1][1]: # Look for higher values of Y…
-                    p_front.append(pair) # … and add them to the Pareto frontier
-            else:
-                if pair[1] <= p_front[-1][1]: # Look for lower values of Y…
-                    p_front.append(pair) # … and add them to the Pareto frontier
-        # Turn resulting pairs back into a list of Xs and Ys
-        p_frontX = [pair[0] for pair in p_front]
-        p_frontY = [pair[1] for pair in p_front]
-
-        mask = res[objectives[0]].isin(p_frontX)
-
-        if plot:
-            plt.scatter(res[objectives[0]], res[objectives[1]], alpha=0.5, c='lightgrey', label='trials')
-            plt.scatter(res[objectives[0]].mask(~mask), res[objectives[1]].mask(~mask), label='undominated trials')
-            # Then plot the Pareto frontier on top
-            plt.plot(p_frontX, p_frontY, c='r', label='pareto front')
-            plt.xlabel(res[objectives[0]].name)
-            plt.ylabel(res[objectives[1]].name)
-            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-            plt.show()
-
-        return p_frontX, p_frontY
-    
-    def sensibility_analysis(self, experimental_domain: dict, plot: bool = True):
+    def sensibility_analysis(self, experimental_domain: dict, plot: bool = True, return_sobol: bool=False):
         
         Sobol_list = []
 
@@ -1205,8 +1390,8 @@ class LBM_Regression:
             'names' : list(experimental_domain.keys()),
             'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
         }
-        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns=self.X.columns)
-        predictions = self.predict(param_values)
+        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.model.X.columns)
+        predictions = self.model.predict(param_values)
         
         for c in predictions:
             Si = sobol.analyze(problem, np.array(predictions[c]))
@@ -1224,5 +1409,136 @@ class LBM_Regression:
                 ax3.barh(t_name,t['ST'].values.round(3), 0.5, color='royalblue', label='Total', xerr=(t['ST_conf'].values))
                 fig.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
                 plt.show()
+        
+        if return_sobol:
+            return Sobol_list        
+        
 
-        return Sobol_list
+'''
+OUTLIER INSPECTION TOOLS
+'''
+
+class Outliers_Inspection:
+    '''
+    Outliers_Inspection:
+    
+        arguments:
+            other: Object
+
+        methods:
+            
+            - cooks_distance()
+                
+                params:
+                    self
+                    plot : Boolean, default True. If True, the 
+                
+                return:
+            
+            - mahalanobis_distance()
+            
+                D**2 = (x-µ)**T.C**(-1).(x-µ)
+                where, 
+                - D**2        is the square of the Mahalanobis distance. 
+                - x          is the vector of the observation (row in a dataset), 
+                - µ          is the vector of mean values of independent variables (mean of each column), 
+                - C**(-1)     is the inverse covariance matrix of independent variables.
+                
+                params:
+                    plot
+                
+                return:
+                    self.mahal_d.diagonal():
+
+            - z_score: calculate the z-score of the targets.
+                    z-score = (y - mean(y)) / std(y)
+                    z-score is the number of standard deviations away from the mean the data point is.
+                
+                params:
+                    ddof: degre of freedom
+                
+                returns:
+                    DataFrame
+    '''
+
+    def __init__(self, other:object):
+        self.other = other
+        self.frame_list = []
+        for i in self.other.model.keys():
+            self.outliers = outliers_influence.OLSInfluence(self.other.model[i]['model_final'])
+            self.frame_list.append(self.outliers.summary_frame())
+        
+    def cooks_distance(self, plot: bool =True):
+        for i in self.other.model.keys():
+            threshold = 4/self.outliers.summary_frame().shape[0]
+            
+            print("<!> in development <!>")
+            print(f'threshold (4/n) = {round(threshold,3)}' )
+            outliers_list= []
+            for n in range(0,self.outliers.summary_frame().shape[0]):
+                if self.outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
+                    outliers_list.append((n, self.outliers.summary_frame().at[n, 'cooks_d']))
+            print(f'potential outliers : {outliers_list}')
+            if plot:
+                #plt.figure()
+                plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.outliers.summary_frame()['cooks_d'], label=i)
+            print(self.outliers.summary_table())
+            
+        plt.plot([0, self.outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
+        plt.xlabel('Observation indices')
+        plt.ylabel('Cook\'s distance')
+        plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
+        plt.show()
+        
+        #return self.frame_list
+    
+    def mahalanobis_distance(self, plot:bool=True, return_diagonal: bool=False):
+        """
+        mahalanobis_distance:
+        D**2 = (x-µ)**T.C**(-1).(x-µ)
+        where, 
+        - D**2       is the square of the Mahalanobis distance. 
+        - x          is the vector of the observation (row in a dataset), 
+        - µ          is the vector of mean values of independent variables (mean of each column), 
+        - C**(-1)    is the inverse covariance matrix of independent variables.
+        """
+        cov = None
+
+        for i in self.other.model.keys():
+            diff_x_u = self.other.X - np.mean(self.other.X, axis=0)
+            if not cov:
+                cov = np.cov(self.other.X.values.T)
+            inv_covmat = np.linalg.inv(cov)
+            left_term = np.dot(diff_x_u, inv_covmat)
+            self.mahal_d = np.dot(left_term, diff_x_u.T)
+        #ajouter Mahalanobis a outlier summary
+        
+        if plot:
+          print("<!> in development <!>")
+          plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
+        
+        if return_diagonal:
+            return self.mahal_d.diagonal()
+
+    def z_score(self, ddof: int=0, plot:bool=True) -> pd.DataFrame:
+        """
+        https://medium.com/clarusway/z-score-and-how-its-used-to-determine-an-outlier-642110f3b482
+        
+        z_score: calculate the z-score of the targets.
+            z-score = (y - mean(y)) / std(y)
+        z-score is the number of standard deviations away from the mean the data point is.
+        
+        params:
+            ddof: degre of freedom
+        returns:
+            DataFrame
+        """
+        df = pd.DataFrame()
+        for col in self.other.y.columns:
+            col_zscore = col + "_zscore"
+            df[col_zscore] = (self.other.y[col] - self.other.y[col].mean())/self.other.y[col].std(ddof=ddof)
+        """
+        df["outlier"] = (abs(df[col + "_zscore"])>3).astype(int)
+        print("number of outliers = " + str(df.outlier.value_counts()[1]))
+        """
+        return df

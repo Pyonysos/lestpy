@@ -38,6 +38,7 @@ import statsmodels.api as sm
 from statsmodels.stats import outliers_influence
 
 import inspect
+from typing import Union, Callable
 
 import matplotlib.pyplot as plt
 
@@ -77,7 +78,7 @@ class Interaction:
                         'X_like_Y', 'Sum_X_Y', 'Difference_X_Y']
     interaction_dict = {}
 
-    def __init__(self, x, y, max_x=None, min_x=None, max_y=None, min_y=None):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         '''
         initialising x, y and their minima and maxima
         '''
@@ -90,18 +91,25 @@ class Interaction:
         self.min_y = np.min(self.y) if min_y is None else min_y
 
     @classmethod       
-    def get_interaction_list(cls):
+    def get_interaction_list(cls) -> list:
         return cls.interaction_list
     
     @classmethod
-    def get_interaction_dict(cls):
+    def remove_interactions(cls, unwanted_interactions : Union[list, str, set]) -> list:
+        if type(unwanted_interactions) is str:
+            unwanted_interactions = [unwanted_interactions]
+        cls.interaction_dict =  list(set(cls.interaction_dict) - set(unwanted_interactions))
+        return cls.interaction_list
+    
+    @classmethod
+    def get_interaction_dict(cls) -> dict:
         return cls.interaction_dict
     
     @classmethod
-    def add_interaction_dict(cls, name, x, y, interaction):
+    def add_interaction_dict(cls, name: str, x: pd.Series, y: pd.Series, interaction: str) -> None:
         cls.interaction_dict[name] = {'x' : x, 'y' : y, 'interaction' : interaction}
     
-    def compute(self):
+    def compute(self) -> pd.DataFrame:
         """
         compute the interaction
         return a dataframe named according to the interaction, with its values
@@ -109,7 +117,7 @@ class Interaction:
         self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         return pd.DataFrame(self.calc(), columns=[self.name])
     
-    def display_interaction(self, x=None, y=None):
+    def display_interaction(self, x: pd.Series=None, y: pd.Series=None):
         """
         display_interaction is a method to help visualize how the interaction is modeled by its function. if x and y are not given, it creates vectors of numbers between -1 and 1 and calculates the values of the interaction.
         x : pandas dataframe, values of feature x
@@ -142,13 +150,13 @@ class InteractionBuilder:
         The new interaction will be automatically added to the list of interactions
         '''
         
-        def __init__(self, name, func):
+        def __init__(self, name: str, func: Callable[[pd.Series, pd.Series], pd.Series]) -> None:
             def init_method(self, x, y, max_x, min_x, max_y, min_y):
                 super(self.__class__, self).__init__(x, y, max_x, min_x, max_y, min_y)
                 self.interaction = self.__class__.__name__
                 self.name = f'{self.interaction} {self.x.name} {self.y.name}'
 
-            def calc(self):
+            def calc(self) -> pd.Series:
                 return func(self.x, self.y)
                 
             Interaction.interaction_list.append(name)
@@ -168,7 +176,7 @@ class X_xor_Y(Interaction):
     operator: x^y
     function: -x*y
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} xor {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -185,7 +193,7 @@ class X_or_Y(Interaction):
     operator: x|y
     function: -(max(x)-x)*(max(y)-y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or {self.y.name}'
         self.interaction = self.__class__.__name__     
@@ -201,7 +209,7 @@ class X_or_not_Y(Interaction):
     operator: x|(not y)
     function: -(max(x)-x)*(|min(y)|+y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -217,7 +225,7 @@ class X_and_Y(Interaction):
     operator: x&y
     function: (|min(x)|+x)*(|min(y)|+y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and {self.y.name}'
         self.interaction = self.__class__.__name__ 
@@ -233,7 +241,7 @@ class X_and_not_Y(Interaction):
     operator: x&(not y)
     function: (|min(x)|+x)*(max(y)-y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and not {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -249,7 +257,7 @@ class X_if_Y(Interaction):
     operator: x & (y != 0)
     function: x*(|min(y)|+y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -265,7 +273,7 @@ class X_if_not_Y(Interaction):
     operator: x & (y < max(y))
     function: x*(max(y)-y)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if not {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -281,7 +289,7 @@ class X_if_Y_average(Interaction):
     operator: x & (min(y) < y < max(y))
     function: x / [sqrt((max(y) + |min(y)|) / (500 + y**2))]
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name} average'
         self.interaction = self.__class__.__name__
@@ -297,7 +305,7 @@ class X_average_if_Y(Interaction):
     operator: (min(x) < x < max(x)) & y
     function: (y + |min(y)|) / [sqrt( (max(y) + |min(x)|) / (200 + x**2))]
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -313,7 +321,7 @@ class X_average_if_not_Y(Interaction):
     operator: (min(x) < x < max(x)) & min(y)
     function: (max(y) - y) / [sqrt( (max(x) + |min(x)|) / (200 + x**2))]
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if not {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -330,7 +338,7 @@ class Neither_X_nor_Y_extreme(Interaction):
     operator: (min(x) < x < max(x)) & (min(y) < y < max(y))
     function: - (x**2 + y**2)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
         self.interaction = self.__class__.__name__
@@ -347,7 +355,7 @@ class both_X_Y_average(Interaction):
     operator: (min(x) << x << max(x)) & (min(y) << y << max(y))
     function: (max(x)**2 - x**2) * (max(y)**2 - y**2)
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'both {self.x.name} and {self.y.name} average'
         self.interaction = self.__class__.__name__
@@ -364,7 +372,7 @@ class X_like_Y(Interaction):
     operator:   x = y
     function:   (x - y)**2
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} like {self.y.name}'
         self.interaction = self.__class__.__name__
@@ -381,7 +389,7 @@ class Sum_X_Y(Interaction):
     operator:   x + y
     function:   x + y
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Sum of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
@@ -398,7 +406,7 @@ class Difference_X_Y(Interaction):
     operator:   x - y
     function:   x - y
     """
-    def __init__(self, x, y, max_x, min_x, max_y, min_y):
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
@@ -429,11 +437,9 @@ class LBM_Regression:
         self.with_fit = False
         self.with_transform = False
         self.with_variable_instant = False
-        return
-    
-    # deprecated to be removed  
+
     def __autointeraction_param(self, allow_autointeraction):      
-         return 1 if allow_autointeraction==True else 0
+         return 1 if allow_autointeraction == True else 0
     
     def __compute_interaction(self, X, autointeraction: bool, interaction_list: list):
         """
@@ -1317,7 +1323,7 @@ class Display:
 
     
     def response_surface(self, X: object = None, Y: object = None, experimental_domain: dict=None, size: int = 10000):
-        #If variables are undefined by user, get the variables that were use for modelling
+        #If variables are not defined by user, get the variables that were use for modelling
         if self.model.with_fit:
             if X is None:
                 X = self.model.X_start 
@@ -1328,7 +1334,7 @@ class Display:
         else : 
             #if fit method has not been used yet -> user must define X and Y
             if (X is None) or (Y is None):
-                raise ValueError('')
+                raise ValueError('X or Y must be defined if lbm_model.fit() has not been called yet')
         
         #List the variables to plot in the model
         screened_var, *others = self.model.__extract_features(experimental_domain)
@@ -1375,7 +1381,7 @@ class Display:
             fig.show()
             """
 
-    def sensibility_analysis(self, experimental_domain: dict, plot: bool = True):
+    def sensibility_analysis(self, experimental_domain: dict, plot: bool = True, return_sobol: bool=False):
         
         Sobol_list = []
 
@@ -1403,8 +1409,9 @@ class Display:
                 ax3.barh(t_name,t['ST'].values.round(3), 0.5, color='royalblue', label='Total', xerr=(t['ST_conf'].values))
                 fig.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
                 plt.show()
-
-        return Sobol_list        
+        
+        if return_sobol:
+            return Sobol_list        
         
 
 '''
@@ -1485,8 +1492,7 @@ class Outliers_Inspection:
         
         #return self.frame_list
     
-    def mahalanobis_distance(self, plot:bool=True):
-        #To Do
+    def mahalanobis_distance(self, plot:bool=True, return_diagonal: bool=False):
         """
         mahalanobis_distance:
         D**2 = (x-µ)**T.C**(-1).(x-µ)
@@ -1511,9 +1517,10 @@ class Outliers_Inspection:
           print("<!> in development <!>")
           plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
         
-        #return self.mahal_d.diagonal()
+        if return_diagonal:
+            return self.mahal_d.diagonal()
 
-    def z_score(self, ddof:int=0, plot:bool=True):
+    def z_score(self, ddof: int=0, plot:bool=True) -> pd.DataFrame:
         """
         https://medium.com/clarusway/z-score-and-how-its-used-to-determine-an-outlier-642110f3b482
         
