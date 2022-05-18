@@ -29,7 +29,6 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
 
-import scipy as sp
 from scipy.stats import dirichlet
 
 from SALib.sample import saltelli
@@ -1503,7 +1502,7 @@ class Outliers_Inspection:
             diff_x_u = self.other.X - np.mean(self.other.X, axis=0)
             if not cov:
                 cov = np.cov(self.other.X.values.T)
-            inv_covmat = sp.linalg.inv(cov)
+            inv_covmat = np.linalg.inv(cov)
             left_term = np.dot(diff_x_u, inv_covmat)
             self.mahal_d = np.dot(left_term, diff_x_u.T)
         #ajouter Mahalanobis a outlier summary
