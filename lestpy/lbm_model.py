@@ -31,7 +31,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
 
-from scipy.stats import dirichlet
+#from scipy.stats import dirichlet
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
