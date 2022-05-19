@@ -693,10 +693,6 @@ class LBM_Regression:
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
                   interaction_list: list = None):
-        #   ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 
-        #                     'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
-        #                     'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
-        #                    ' X_like_Y', 'Sum_X_Y', 'Difference_X_Y']):
         """
         transform method :
         
@@ -712,7 +708,7 @@ class LBM_Regression:
             self
         
         """
-        if not interaction_list:
+        if interaction_list is None:
             interaction_list = Interaction.get_interaction_list()
             print(interaction_list)
 
@@ -783,7 +779,7 @@ class LBM_Regression:
         #Mesure du temps de calcul
         start = time.time()
         
-        if not X:
+        if X is None:
           X= self.rescaled_features
         
         if type(threshold) is not float:
@@ -794,7 +790,7 @@ class LBM_Regression:
         
         self.model={}
         
-        if y:
+        if y is not None:
             self.y = y
         try:
             y = self.y.to_frame()
@@ -832,7 +828,10 @@ class LBM_Regression:
             #saving data into model dict
             self.model[i]['model_final'] = sm.OLS(y_array, data_array).fit()
             #print(self.model[i]['model_final'].summary())
+            print(f'summary of the model for {i}:')
             print(self.model[i]['model_final'].summary())
+            print('==============================================================================')
+            print('\n\n')
 
             self.model[i]['y_pred'] = self.model[i]['model_final'].predict(data)
             
@@ -1042,8 +1041,10 @@ class LBM_Regression:
                 table['Coefficient'].append(coef.round(3))
                 table['Parameter'].append(param[0])
                 table['Std Error'].append(std_er.round(3))
-        results = pd.DataFrame(table)
-        print(results)
+            results = pd.DataFrame(table)
+            print(results)
+            print('==============================================================================')
+            print('\n\n')
    
     def __extract_features(self, experimental_domain: dict):
         screened_var=[]
@@ -1111,7 +1112,7 @@ class Display:
         '''
         model = lbm_model
         '''
-        self.model = model
+        self.lbm_model = model
 
     def display_interaction(self, interaction, x=None, y=None):
         """
@@ -1140,24 +1141,25 @@ class Display:
         
         self.plot_surface(x, y, z)
 
-    def residues_hist(self, y):
-        plt.scatter(y, self.model[y.name]['y_pred']-y)
+    def residues(self, y: pd.Series, y_pred: pd.DataFrame= None) -> None:
+        if y_pred is None:
+            y_pred = self.lbm_model.model[y.name]['y_pred']    
+        diff = np.array(y_pred) - np.array(y).reshape(y_pred.shape)
+        plt.scatter(y, diff)
         plt.xlabel('residual distance')
         plt.ylabel('observation number')
         plt.title('Distribution of the residuals')
-        return
     
-    def fit_scatter(self, y):
-        plt.scatter(y, self.model[y.name]['y_pred'])
+    def fit(self, y):
+        plt.scatter(y, self.lbm_model.model[y.name]['y_pred'])
         plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='r')
-        plt.xlabel(f'measured values of {self.model[y.name]["results"].iloc[:,0].name}')
-        plt.ylabel(f'predicted values of {self.model[y.name]["results"].iloc[:,0].name}')
+        plt.xlabel(f'measured values of {self.lbm_model.model[y.name]["results"].iloc[:,0].name}')
+        plt.ylabel(f'predicted values of {self.lbm_model.model[y.name]["results"].iloc[:,0].name}')
         plt.title('Measured vs. predicted values')
-        return
     
     def metrics_curve(self, y):
-        plt.plot(np.arange(1, len(self.model[y.name]['metrics'])+1), self.model[y.name]['metrics'])
-        plt.plot(self.model[y.name]['nb_predictor'], self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1], linestyle='none', marker='o', label='Optimal number of predictors')
+        plt.plot(np.arange(1, len(self.lbm_model.model[y.name]['metrics'])+1), self.lbm_model.model[y.name]['metrics'])
+        plt.plot(self.lbm_model.model[y.name]['nb_predictor'], self.lbm_model.model[y.name]['metrics'][self.lbm_model.model[y.name]['nb_predictor']-1], linestyle='none', marker='o', label='Optimal number of predictors')
         plt.legend()
         plt.xlabel('number of predictors')
         plt.ylabel('Q² values')
@@ -1167,18 +1169,18 @@ class Display:
     def describe(self, X=None, y=None):
         #retourne score, histogramme des résidus et diagonale
         if y is None:
-            y = self.model.y
+            y = self.lbm_model.y
         if X is None:
-            X = self.model.X
-        
-        for i in y.keys():
+            X = self.lbm_model.X
+
+        for i in y:
             print(i)
-            self.model.fitting_score(y[i])
+            self.lbm_model.fitting_score(y[i])
             plt.figure()
-            self.fit_scatter(y[i])
+            self.fit(y[i])
             plt.show()
             plt.figure()
-            self.residues_hist(y[i])
+            self.residues(y[i])
             plt.show()
             plt.figure()
             self.metrics_curve(y[i])
