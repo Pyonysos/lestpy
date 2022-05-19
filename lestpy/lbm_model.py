@@ -980,7 +980,9 @@ class LBM_Regression:
     def __mix_features_generator(self, alpha, size, random_state, mix):
         if alpha is None:
              alpha = np.ones((len(mix))) / len(mix)
-        return pd.DataFrame(dirichlet.rvs(alpha, size=size, random_state=random_state), columns = mix)
+        dirichlet_dist = np.random.default_rng().dirichlet(alpha, size=size)
+        return pd.DataFame(dirichlet_dist, columns=mix)
+        #return pd.DataFrame(dirichlet.rvs(alpha, size=size, random_state=random_state), columns = mix)
     
     def generator(self, experimental_domain, mix, alpha : list, size: int, random_state: int=None):
         x=None
