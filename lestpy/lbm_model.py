@@ -443,7 +443,6 @@ class LBM_Regression:
         self.with_fit = False
         self.with_transform = False
         self.with_variable_instant = False
-        self.with_export = with_export
 
     def __autointeraction_param(self, allow_autointeraction):      
          return 1 if allow_autointeraction == True else 0
@@ -1011,7 +1010,8 @@ class LBM_Regression:
             raise TypeError('experimental_domain must be a dictionary')
 
         if target is None:
-            target = ['maximize'] * len(experimental_domain.keys())
+            target = ['maximize'] * self.y.shape[1]
+            print(target)
         
         #generation d'un nouveau tableau exploratoire
         sample = self.generator(experimental_domain, mix, alpha, size, random_state)
@@ -1209,7 +1209,6 @@ class Display:
             self.__aggregate_result_description(y)
         else:
             raise ValueError('y must be a DataFrame or Serie')
-
 
     def __aggregate_result_description(self, y):
                 self.lbm_model.fitting_score(y)
@@ -1427,8 +1426,8 @@ class Display:
             'names' : list(experimental_domain.keys()),
             'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
         }
-        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.model.X.columns)
-        predictions = self.model.predict(param_values)
+        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.lbm_model.X.columns)
+        predictions = self.lbm_model.predict(param_values)
         
         for c in predictions:
             Si = sobol.analyze(problem, np.array(predictions[c]))
