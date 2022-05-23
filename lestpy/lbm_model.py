@@ -1313,9 +1313,9 @@ class Display:
             https://oco-carbon.com/metrics/find-pareto-frontiers-in-python/
             """
             # Sort the list in either ascending or descending order of X
-            if target[0]=='maximize':
+            if target[0] in ('maximize', 'max'):
                 maxX = True
-            elif target[0]=='minimize':
+            elif target[0] in ('minimize', 'min'):
                 maxX= False
 
             maxY = False if target[1] == 'minimize' else True
