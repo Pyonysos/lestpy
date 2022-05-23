@@ -2,6 +2,9 @@
 TO DO:
 Improve documentation and type hinting using module typing
 
+target in optimize shall be a dict
+simplify experimetnal-domain
+
 Create a tool for feature analysis:
 |--plot hist to view distribution
 |--Create a tool "outlier detection"
@@ -671,10 +674,14 @@ class LBM_Regression:
             else:
                 location = prediction
         
-            if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
+            #if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
+            if isinstance(target, (str, float, int, type(None))):
                 goal = target
             elif type(target) is list:
                 goal= target[i]
+            elif isinstance(target, (dict,)):
+                #Try to call respobnse
+                goal = target.get(prediction.columns[0][4:], None)
             else:
                 raise TypeError("target is either a string, a float, an integer or a list")
 
@@ -685,7 +692,7 @@ class LBM_Regression:
                 objective = np.divide(location.max(axis = 0) - location, location.max(axis=0) - location.min(axis=0))
             elif goal in ('none', None, ''): #desirability to reach a specific target value
                 objective = 1
-            elif isintance(goal, (int, float)):
+            elif isinstance(goal, (int, float)):
                 Solution1 = (location - location.min(axis=0))/ (goal - location.min(axis=0))
                 Solution2 = (location - location.max(axis=0))/ (goal - location.max(axis=0))
                 objective = np.minimum(Solution1, Solution2)
@@ -1002,7 +1009,7 @@ class LBM_Regression:
                 x = pd.concat((x, pd.DataFrame(experimental_domain[var][5], columns=[var])), axis=1)
         return x
     
-    def optimize(self, experimental_domain:dict=None, target:list=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
+    def optimize(self, experimental_domain:dict=None, target:Union[list, dict]=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
         
         #etude de la qualité des paramètres (quantitatif ou qualitatif)
         if experimental_domain is None:
@@ -1441,6 +1448,9 @@ class Display:
             t_name = [str(n) for n in t.index.tolist()]
 
             if plot:
+                print('==============================================================================')
+                print(f'Sensitivity analysis for response {c[4:]}')
+                print('==============================================================================')
                 fig, (ax1, ax2, ax3) = plt.subplots(3, sharex =True)
                 ax1.barh(fo_name,fo['S1'].values.round(3) , 0.5, color='cornflowerblue', label='Parameters', xerr=fo['S1_conf'].values)
                 ax2.barh(so_name, so['S2'].values.round(3), 0.5, color='lightsteelblue', label='Interactions', xerr=so['S2_conf'].values)
