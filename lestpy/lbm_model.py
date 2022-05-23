@@ -1318,7 +1318,7 @@ class Display:
             elif target[0] in ('minimize', 'min'):
                 maxX= False
 
-            maxY = False if target[1] == 'minimize' else True
+            maxY = False if target[1] in ('minimize', 'min') else True
             
             if len(objectives) > 2:
                 raise ValueError('Length of "objectives" should be 2.')
