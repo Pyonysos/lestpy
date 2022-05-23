@@ -2,7 +2,6 @@
 TO DO:
 Improve documentation and type hinting using module typing
 
-target in optimize shall be a dict
 simplify experimetnal-domain
 
 Create a tool for feature analysis:
@@ -1269,10 +1268,6 @@ class Display:
         
         return: None
         """
-        # if hasattr(kwargs, "cmap"):
-        #     cmap=kwargs['cmap']
-        # else:
-        #     cmap='Viridis'
         
         fig = plt.figure(figsize=(15,15))
         ax = plt.axes(projection='3d')
