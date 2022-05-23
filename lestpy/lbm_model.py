@@ -654,10 +654,12 @@ class LBM_Regression:
         Computation of desirability according to Derringer and Suich (1980) for multiple response optimization
         
         parameters:
-            target : String, float, int or List of those
+            target : String, float, int, list or dict of those
                     if string -> 'maximize' or 'minimize' or 'none'
                     float or int should correspond to the values that are targeted during optimization
-                    List in the order of the columns in the dataFrame of responses
+                    list in the order of the columns in the dataFrame of responses
+                    dict: 
+                      key: target name, value: 'minimize', 'maximize' or desired value (int, float)
                     2 types of values are accepted : 
                                 - String ('maximize' or 'minimize')
                                 - Float (or int) if the optimization must target a specific value
