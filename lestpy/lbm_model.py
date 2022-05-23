@@ -649,7 +649,7 @@ class LBM_Regression:
         return round(1-np.sum(SSres)/np.sum(np.square(SStot-SStot_mean)),3)
     
     
-    def __desirability_DS(self, target, target_weights, prediction):
+    def __desirability_DS(self, target, target_weights, prediction) -> pd.DataFrame:
         """
         Computation of desirability according to Derringer and Suich (1980) for multiple response optimization
         
@@ -679,7 +679,7 @@ class LBM_Regression:
             #if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
             if isinstance(target, (str, float, int, type(None))):
                 goal = target
-            elif type(target) is list:
+            elif isinstance(target, list):
                 goal= target[i]
             elif isinstance(target, (dict,)):
                 #Try to call respobnse
