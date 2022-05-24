@@ -2,6 +2,8 @@
 TO DO:
 Improve documentation and type hinting using module typing
 
+simplify experimetnal-domain
+
 Create a tool for feature analysis:
 |--plot hist to view distribution
 |--Create a tool "outlier detection"
@@ -184,8 +186,6 @@ class X_xor_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} xor {self.y.name}'
         self.interaction = self.__class__.__name__
-        #Interaction.interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
-        #self.add_interaction_dict(self.name, self.x, self.y, self.interaction)
         
     def calc(self):
         func = np.array(np.multiply(-self.x, self.y)).reshape(-1,1)
@@ -200,8 +200,7 @@ class X_or_Y(Interaction):
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or {self.y.name}'
-        self.interaction = self.__class__.__name__     
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
+        self.interaction = self.__class__.__name__
         
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(self.max_y-self.y)).reshape(-1,1)
@@ -217,7 +216,6 @@ class X_or_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(-(self.max_x-self.x)*(np.abs(self.min_y)+self.y)).reshape(-1,1)
@@ -233,7 +231,6 @@ class X_and_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and {self.y.name}'
         self.interaction = self.__class__.__name__ 
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.y+np.abs(self.min_y))).reshape(-1,1)
@@ -249,7 +246,6 @@ class X_and_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} and not {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.x+np.abs(self.min_x))*(self.max_y-self.y)).reshape(-1,1)
@@ -265,7 +261,6 @@ class X_if_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.min_y)+self.y)).reshape(-1,1)
@@ -281,7 +276,6 @@ class X_if_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if not {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x*(np.abs(self.max_y)-self.y)).reshape(-1,1)
@@ -297,7 +291,6 @@ class X_if_Y_average(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} if {self.y.name} average'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
     
     def calc(self):
         func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y)) / 500 + np.square(self.y))).reshape(-1,1)
@@ -313,7 +306,6 @@ class X_average_if_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
@@ -329,7 +321,6 @@ class X_average_if_not_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} average if not {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
@@ -346,7 +337,6 @@ class Neither_X_nor_Y_extreme(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Neither {self.x.name} nor {self.y.name} extreme'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x)-np.square(self.y)).reshape(-1,1)
@@ -363,7 +353,6 @@ class both_X_Y_average(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'both {self.x.name} and {self.y.name} average'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array((np.square(self.max_x)-np.square(self.x))*(np.square(self.max_y)-np.square(self.y))).reshape(-1,1)
@@ -380,7 +369,6 @@ class X_like_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'{self.x.name} like {self.y.name}'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(-np.square(self.x-self.y)).reshape(-1,1)
@@ -397,7 +385,6 @@ class Sum_X_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Sum of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x+self.y).reshape(-1,1)
@@ -414,7 +401,6 @@ class Difference_X_Y(Interaction):
         super().__init__(x, y, max_x, min_x, max_y, min_y)
         self.name = f'Difference of {self.x.name} and {self.y.name} high'
         self.interaction = self.__class__.__name__
-        #interaction_dict[self.name] = {'x' : self.x, 'y' : self.y, 'interaction' : self.interaction}
         
     def calc(self):
         func = np.array(self.x-self.y).reshape(-1,1)
@@ -547,11 +533,11 @@ class LBM_Regression:
         '''
         compute the correlation matrix
         '''
-        
-        if hasattr(y, 'name'):
-            name = y.name
-        else :
-            name = y.columns
+        name = y.name if isinstance(y, pd.Series) else y.columns
+        #if hasattr(y, 'name'):
+        #    name = y.name
+        #else:
+        #    name = y.columns
 
         #deprecated : mat = np.corrcoef(pd.concat([X, y], axis=1).T)
         mat = np.ma.corrcoef(pd.concat([X, y], axis=1).T)
@@ -646,15 +632,17 @@ class LBM_Regression:
         return round(1-np.sum(SSres)/np.sum(np.square(SStot-SStot_mean)),3)
     
     
-    def __desirability_DS(self, target, target_weights, prediction):
+    def __desirability_DS(self, target, target_weights, prediction) -> pd.DataFrame:
         """
         Computation of desirability according to Derringer and Suich (1980) for multiple response optimization
         
         parameters:
-            target : String, float, int or List of those
+            target : String, float, int, list or dict of those
                     if string -> 'maximize' or 'minimize' or 'none'
                     float or int should correspond to the values that are targeted during optimization
-                    List in the order of the columns in the dataFrame of responses
+                    list in the order of the columns in the dataFrame of responses
+                    dict: 
+                      key: target name, value: 'minimize', 'maximize' or desired value (int, float)
                     2 types of values are accepted : 
                                 - String ('maximize' or 'minimize')
                                 - Float (or int) if the optimization must target a specific value
@@ -671,21 +659,24 @@ class LBM_Regression:
             else:
                 location = prediction
         
-            if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
+            #if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
+            if isinstance(target, (str, float, int, type(None))):
                 goal = target
-            elif type(target) is list:
+            elif isinstance(target, list):
                 goal= target[i]
+            elif isinstance(target, (dict,)):
+                goal = target.get(prediction.columns[0][4:], None)
             else:
                 raise TypeError("target is either a string, a float, an integer or a list")
 
                     
-            if goal=='maximize': #desirability to maximize the response
+            if goal in ('maximize', 'max'): #desirability to maximise the response
                 objective = np.divide(location - location.min(axis = 0), location.max(axis=0)- location.min(axis=0))
-            elif goal=='minimize': #desirability to minimize the response
+            elif goal in ('minimize', 'min'): #desirability to minimize the response
                 objective = np.divide(location.max(axis = 0) - location, location.max(axis=0) - location.min(axis=0))
-            elif (goal == 'none') or (goal is None): #desirability to reach a specific target value
+            elif goal in ('none', None, ''): #desirability to reach a specific target value
                 objective = 1
-            else:
+            elif isinstance(goal, (int, float)):
                 Solution1 = (location - location.min(axis=0))/ (goal - location.min(axis=0))
                 Solution2 = (location - location.max(axis=0))/ (goal - location.max(axis=0))
                 objective = np.minimum(Solution1, Solution2)
@@ -761,7 +752,7 @@ class LBM_Regression:
                 raise NotImplementedError(f'rescaling interactions with {scaler} method failed')
             
         end = time.time()
-        print(f'calculé en {round(end-start, 3)} secondes')
+        print(f'calculated in {round(end-start, 3)} seconds')
         
         self.with_transform = True
         
@@ -814,16 +805,14 @@ class LBM_Regression:
             
             for reg in range(max_regressors_nb):
                 #identification of the best interaction
-                #self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, self.rescaled_features, self.model[i]['selected_features'], threshold)
                 self.model[i]['results'], self.model[i]['selected_features'] = self.__feature_selection(self.model[i]['results'], self.corr_X, X, self.model[i]['selected_features'], threshold)
                 self.corr_X = self.__partial_correlations(self.corr_X, self.model[i]['selected_features'][-1][0])
 
                 self.model[i]['metrics'].append(self.__model_evaluation(self.model[i]['results']))
                 
             self.model[i]['nb_predictor'] = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
-            #self.model[i]['model_final'] = LinearRegression()
 
-            #adding a column of bias to the selected features 
+            #adding a column of bias to the selected features
             data = pd.concat((self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1], pd.DataFrame(np.ones(y[i].shape), columns=['intercept'])), axis=1)
             
             #cast y and data to numpy array
@@ -868,10 +857,11 @@ class LBM_Regression:
         transformed_X_start = pd.DataFrame(self.transformer.transform(self.X_start), columns=X.columns.tolist())
         self.y_pred = pd.DataFrame()
         
-        try:
-            y = self.y.to_frame()
-        except:
-            y = self.y
+        y = self.y if isinstance(y, pd.DataFrame) else self.y.to_frame()
+        #try:
+        #    y = self.y.to_frame()
+        #except:
+        #    y = self.y
         
         for i in y:
             new_X = None
@@ -944,7 +934,7 @@ class LBM_Regression:
             
             self.experimental_domain[X[feature].name] = [None, X[feature].min(axis=0), X[feature].max(axis=0), varlist , vartype]
         
-        self.mix=None
+        self.mix = None
         for i in range(0, X.shape[1]):
             for j in range(i+1, X.shape[1]+1):
                 a = X.iloc[:, i:j].sum(axis=1)
@@ -1002,7 +992,7 @@ class LBM_Regression:
                 x = pd.concat((x, pd.DataFrame(experimental_domain[var][5], columns=[var])), axis=1)
         return x
     
-    def optimize(self, experimental_domain:dict=None, target:list=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
+    def optimize(self, experimental_domain:dict=None, target:Union[list, dict]=None, target_weights:list=None, mix:list = None, alpha : list=None, size: int= 10000, random_state: int=None):
         
         #etude de la qualité des paramètres (quantitatif ou qualitatif)
         if experimental_domain is None:
@@ -1260,10 +1250,6 @@ class Display:
         
         return: None
         """
-        # if hasattr(kwargs, "cmap"):
-        #     cmap=kwargs['cmap']
-        # else:
-        #     cmap='Viridis'
         
         fig = plt.figure(figsize=(15,15))
         ax = plt.axes(projection='3d')
@@ -1304,12 +1290,12 @@ class Display:
             https://oco-carbon.com/metrics/find-pareto-frontiers-in-python/
             """
             # Sort the list in either ascending or descending order of X
-            if target[0]=='maximize':
+            if target[0] in ('maximize', 'max'):
                 maxX = True
-            elif target[0]=='minimize':
+            elif target[0] in ('minimize', 'min'):
                 maxX= False
 
-            maxY = False if target[1] == 'minimize' else True
+            maxY = False if target[1] in ('minimize', 'min') else True
             
             if len(objectives) > 2:
                 raise ValueError('Length of "objectives" should be 2.')
@@ -1441,6 +1427,9 @@ class Display:
             t_name = [str(n) for n in t.index.tolist()]
 
             if plot:
+                print('==============================================================================')
+                print(f'Sensitivity analysis for response {c[4:]}')
+                print('==============================================================================')
                 fig, (ax1, ax2, ax3) = plt.subplots(3, sharex =True)
                 ax1.barh(fo_name,fo['S1'].values.round(3) , 0.5, color='cornflowerblue', label='Parameters', xerr=fo['S1_conf'].values)
                 ax2.barh(so_name, so['S2'].values.round(3), 0.5, color='lightsteelblue', label='Interactions', xerr=so['S2_conf'].values)
