@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: lestpy
-Version: 0.0.7
+Version: 0.0.8
 Summary: Regression model with logical interactions
 Home-page: https://github.com/Pyonysos/lestpy
 Author: Pyonysos (Paul-Hubert Baudelet)

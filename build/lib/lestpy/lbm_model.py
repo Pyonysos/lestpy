@@ -19,7 +19,9 @@ https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-
 
 
 """
-DEPENDENCIES
+=========================================================================================================================================
+                                                    DEPENDENCIES
+=========================================================================================================================================
 """
 
 #progressively remove sklearn imports
@@ -29,7 +31,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
 
-from scipy.stats import dirichlet
+#from scipy.stats import dirichlet
 
 from SALib.sample import saltelli
 from SALib.analyze import sobol
@@ -49,7 +51,9 @@ import time
 
 
 """
-Definition of the interactions
+=========================================================================================================================================
+                                            DEFINITION OF THE LOGICAL INTERACTIONS
+=========================================================================================================================================
 """
 class Interaction:
     """
@@ -417,7 +421,9 @@ class Difference_X_Y(Interaction):
         return func
 
 """
-REGRESSION ALGORHITHM
+=========================================================================================================================================
+                                            TRANSFORMER AND REGRESSION TOOLS
+=========================================================================================================================================
 """
 
 class LBM_Regression:
@@ -973,7 +979,9 @@ class LBM_Regression:
     def __mix_features_generator(self, alpha, size, random_state, mix):
         if alpha is None:
              alpha = np.ones((len(mix))) / len(mix)
-        return pd.DataFrame(dirichlet.rvs(alpha, size=size, random_state=random_state), columns = mix)
+        dirichlet_dist = np.random.default_rng().dirichlet(alpha, size=size)
+        return pd.DataFame(dirichlet_dist, columns=mix)
+        #return pd.DataFrame(dirichlet.rvs(alpha, size=size, random_state=random_state), columns = mix)
     
     def generator(self, experimental_domain, mix, alpha : list, size: int, random_state: int=None):
         x=None
@@ -1002,6 +1010,10 @@ class LBM_Regression:
               
         elif type(experimental_domain) is not dict:
             raise TypeError('experimental_domain must be a dictionary')
+
+        if target is None:
+            target = ['maximize'] * self.y.shape[1]
+            print(target)
         
         #generation d'un nouveau tableau exploratoire
         sample = self.generator(experimental_domain, mix, alpha, size, random_state)
@@ -1024,24 +1036,31 @@ class LBM_Regression:
             return res   
     
     def fitting_score(self, y):
+        
         self.model[y.name]['r2score'] = r2_score(y, self.model[y.name]['y_pred']).round(3)
         self.model[y.name]['adjustedr2score'] = (1-(1-self.model[y.name]['r2score'])*(self.model[y.name]['results'].shape[0]-1)/(self.model[y.name]['results'].shape[0]-self.model[y.name]['nb_predictor']-1)).round(3)
         self.model[y.name]['Q2_obs'] = self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1]
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
+        print('==============================================================================')
+        print(f'Fitting score for target "{y.name}"')
+        print('==============================================================================')
         print(stats)
+        print('==============================================================================')
         return
 
     def print_model(self):
         for i in self.model.keys():
-            print(f'model for target "{i}"')
-            print('\n')
-            print(f'The value of {i} is high if...')
+            
             table = {'Coefficient': [], 'Parameter': [], 'Std Error' : []}
             for coef, param, std_er in  zip(self.model[i]['model_final'].params, self.model[i]['selected_features'][:self.model[i]['nb_predictor']], self.model[i]['model_final'].bse):
                 table['Coefficient'].append(coef.round(3))
                 table['Parameter'].append(param[0])
                 table['Std Error'].append(std_er.round(3))
             results = pd.DataFrame(table)
+            print('==============================================================================')
+            print(f'model for target "{i}"')
+            print('==============================================================================')
+            print(f'The value of {i} is high if:')
             print(results)
             print('==============================================================================')
             print('\n\n')
@@ -1069,6 +1088,7 @@ class LBM_Regression:
 
         except ValueError:
             print('To plot a ternary diagram please set 3 variable values to "toPlot"')
+
         
     def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
         #list the features to plot
@@ -1094,7 +1114,9 @@ class LBM_Regression:
 
 
 '''
-VISUALIZATION TOOLS
+=========================================================================================================================================
+                                                        VISUALIZATION TOOLS
+=========================================================================================================================================
 '''
 
 #define plot style to render consistant figures between one another
@@ -1142,13 +1164,23 @@ class Display:
         self.plot_surface(x, y, z)
 
     def residues(self, y: pd.Series, y_pred: pd.DataFrame= None) -> None:
-        if y_pred is None:
-            y_pred = self.lbm_model.model[y.name]['y_pred']    
-        diff = np.array(y_pred) - np.array(y).reshape(y_pred.shape)
-        plt.scatter(y, diff)
-        plt.xlabel('residual distance')
-        plt.ylabel('observation number')
-        plt.title('Distribution of the residuals')
+        if isinstance(y, pd.DataFrame):
+            for i in y:
+                if y_pred is None:
+                    y_pred = self.lbm_model.model[y[i].name]['y_pred']
+                self.__plot_residues(y[i], y_pred)
+        elif isinstance(y, pd.Series):
+            if y_pred is None:
+                y_pred = self.lbm_model.model[y.name]['y_pred']
+            self.__plot_residues(y, y_pred)
+    
+
+    def __plot_residues(self, y, y_pred) :
+            diff = y_pred - y
+            plt.scatter(y, diff)
+            plt.xlabel('residual distance')
+            plt.ylabel('observation number')
+            plt.title('Distribution of the residuals')
     
     def fit(self, y):
         plt.scatter(y, self.lbm_model.model[y.name]['y_pred'])
@@ -1164,7 +1196,6 @@ class Display:
         plt.xlabel('number of predictors')
         plt.ylabel('Q² values')
         plt.title('Evolution of Q² with increasing number of predictors')
-        return
     
     def describe(self, X=None, y=None):
         #retourne score, histogramme des résidus et diagonale
@@ -1172,21 +1203,26 @@ class Display:
             y = self.lbm_model.y
         if X is None:
             X = self.lbm_model.X
+        
+        if isinstance(y, pd.DataFrame):
+            for i in y:
+                self.__aggregate_result_description(y[i])
+        elif isinstance(y, pd.Series):
+            self.__aggregate_result_description(y)
+        else:
+            raise ValueError('y must be a DataFrame or Serie')
 
-        for i in y:
-            print(i)
-            self.lbm_model.fitting_score(y[i])
-            plt.figure()
-            self.fit(y[i])
-            plt.show()
-            plt.figure()
-            self.residues(y[i])
-            plt.show()
-            plt.figure()
-            self.metrics_curve(y[i])
-            plt.show()
-            #plt.suptitle('Overview of the modelisation')
-        return
+    def __aggregate_result_description(self, y):
+                self.lbm_model.fitting_score(y)
+                plt.figure()
+                self.fit(y)
+                plt.show()
+                plt.figure()
+                self.residues(y)
+                plt.show()
+                plt.figure()
+                self.metrics_curve(y)
+                plt.show()
 
     def corr_graph(self, features, threshold: float = 0.2, responses=None, render= 'adj_matrix', plot=True):
         '''
@@ -1392,8 +1428,8 @@ class Display:
             'names' : list(experimental_domain.keys()),
             'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
         }
-        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.model.X.columns)
-        predictions = self.model.predict(param_values)
+        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.lbm_model.X.columns)
+        predictions = self.lbm_model.predict(param_values)
         
         for c in predictions:
             Si = sobol.analyze(problem, np.array(predictions[c]))
@@ -1417,7 +1453,9 @@ class Display:
         
 
 '''
-OUTLIER INSPECTION TOOLS
+=========================================================================================================================================
+                                                    OUTLIER INSPECTION TOOLS
+=========================================================================================================================================
 '''
 
 class Outliers_Inspection:

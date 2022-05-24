@@ -679,12 +679,12 @@ class LBM_Regression:
                 raise TypeError("target is either a string, a float, an integer or a list")
 
                     
-            if goal=='maximize': #desirability to maximise the response
+            if goal=='maximize': #desirability to maximize the response
                 objective = np.divide(location - location.min(axis = 0), location.max(axis=0)- location.min(axis=0))
             elif goal=='minimize': #desirability to minimize the response
                 objective = np.divide(location.max(axis = 0) - location, location.max(axis=0) - location.min(axis=0))
             elif (goal == 'none') or (goal is None): #desirability to reach a specific target value
-                objective = 0
+                objective = 1
             else:
                 Solution1 = (location - location.min(axis=0))/ (goal - location.min(axis=0))
                 Solution2 = (location - location.max(axis=0))/ (goal - location.max(axis=0))
