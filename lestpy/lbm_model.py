@@ -674,9 +674,9 @@ class LBM_Regression:
                 objective = np.divide(location - location.min(axis = 0), location.max(axis=0)- location.min(axis=0))
             elif goal in ('minimize', 'min'): #desirability to minimize the response
                 objective = np.divide(location.max(axis = 0) - location, location.max(axis=0) - location.min(axis=0))
-            elif goal in ('none', None, ''): #desirability to reach a specific target value
+            elif goal in ('none', None, ''): 
                 objective = 1
-            elif isinstance(goal, (int, float)):
+            elif isinstance(goal, (int, float)): #desirability to reach a specific target value
                 Solution1 = (location - location.min(axis=0))/ (goal - location.min(axis=0))
                 Solution2 = (location - location.max(axis=0))/ (goal - location.max(axis=0))
                 objective = np.minimum(Solution1, Solution2)
@@ -857,7 +857,7 @@ class LBM_Regression:
         transformed_X_start = pd.DataFrame(self.transformer.transform(self.X_start), columns=X.columns.tolist())
         self.y_pred = pd.DataFrame()
         
-        y = self.y if isinstance(y, pd.DataFrame) else self.y.to_frame()
+        y = self.y if isinstance(self.y, pd.DataFrame) else self.y.to_frame()
         #try:
         #    y = self.y.to_frame()
         #except:
