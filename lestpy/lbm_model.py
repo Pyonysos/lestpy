@@ -1571,3 +1571,6 @@ class Outliers_Inspection:
         print("number of outliers = " + str(df.outlier.value_counts()[1]))
         """
         return df
+    
+    def outlier_summary(self):
+        pass
