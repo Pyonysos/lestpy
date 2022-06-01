@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-VERSION = '0.0.9'
+VERSION = '0.0.10'
 DESCRIPTION = 'Regression model with logical interactions'
 
 # The directory containing this file

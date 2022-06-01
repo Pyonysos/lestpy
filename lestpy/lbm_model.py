@@ -80,9 +80,16 @@ class Interaction:
     """
 
     interaction_list = ['X_xor_Y', 'X_or_Y', 'X_or_not_Y', 'X_and_Y','X_and_not_Y', 'X_if_Y', 'X_if_not_Y', 
-                        'X_if_Y_average', 'X_average_if_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
+                        'X_if_Y_average', 'X_average_if_Y', 'X_average_if_not_Y', 'Neither_X_nor_Y_extreme', 'both_X_Y_average', 
                         'X_like_Y', 'Sum_X_Y', 'Difference_X_Y']
     interaction_dict = {}
+
+    interactions = {    None: interaction_list,
+                        'classic': interaction_list,
+                        'quadratic' : ['X_x_Y'],
+                        'ridgeless': list(set(interaction_list) - {'X_if_Y_average', 'X_average_if_Y', 'X_average_if_not_Y'}),
+                        'all' : interaction_list +  ['X_x_Y']
+                        }
 
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         '''
@@ -97,8 +104,9 @@ class Interaction:
         self.min_y = np.min(self.y) if min_y is None else min_y
 
     @classmethod       
-    def get_interaction_list(cls) -> list:
-        return cls.interaction_list
+    def get_interaction_list(cls, family='classic') -> list:
+        return cls.interactions.get(family, ValueError('interaction_list must be whether a list of interactions or a string of \
+                                                            one of the built-in family of interactions ("ridgeless", "classic", "quadratic", "all"'))
     
     @classmethod
     def remove_interactions(cls, unwanted_interactions : Union[list, str, set]) -> list:
@@ -322,7 +330,7 @@ class X_average_if_Y(Interaction):
         self.interaction = self.__class__.__name__
         
     def calc(self):
-        func = np.array((np.abs(self.min_y) + self.y) / np.sqrt((self.max_x + np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
+        func = np.array((np.abs(self.min_y) + self.y) / np.sqrt((self.max_x + np.abs(self.min_x)) / 200 + np.square(self.x) )).reshape(-1,1)
         return func
 
 class X_average_if_not_Y(Interaction):
@@ -701,17 +709,7 @@ class LBM_Regression:
 
             desirability = np.multiply(desirability, np.power(np.array(objective), target_weights[i]/np.sum(target_weights)).reshape(-1,1))
         return desirability
-  
-    def __get_interaction_list(self, interactions)
-        if interactions in ('classic', None):
-            interaction_list = set(Interaction.get_interaction_list()) - set('X_x_Y')
-        elif interactions == 'ridgeless':
-            interaction_list = set(Interaction.get_interaction_list())- set('X_average_if_not_Y', 'X_average_if_Y', 'X_if_Y_average')
-        elif interactions == 'quadratic':
-            interaction_list = ['X_x_Y']
-        print(interaction_list)
-        return interaction_list
-    
+
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
                   interaction_list: list = None):
         """
@@ -732,8 +730,8 @@ class LBM_Regression:
             self
         
         """
-      
-        interaction_list= self.__get_interaction_list(interaction_list)
+        if isinstance(interaction_list, str):
+            interaction_list = Interaction.get_interaction_list(family = interaction_list)
 
         if scaler not in ['robust', 'standard', 'minmax']:
             raise ValueError(f'{scaler} method is not implemented,\n  Implemented methods "robust, minmax and standard"')
