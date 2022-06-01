@@ -174,7 +174,21 @@ class InteractionBuilder:
                     '__module__': name,
                     'calc': calc,
                     })
-
+class X_x_Y(Interaction):
+    """
+    X_x_Y: Polynomial term for quadratic regression
+    operator: x^y
+    function: x*y
+    """
+    def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
+        super().__init__(x, y, max_x, min_x, max_y, min_y)
+        self.name = f'{self.x.name} x {self.y.name}'
+        self.interaction = self.__class__.__name__
+        
+    def calc(self):
+        func = np.array(np.multiply(self.x, self.y)).reshape(-1,1)
+        return func
+   
 
 class X_xor_Y(Interaction):
     """
@@ -687,6 +701,16 @@ class LBM_Regression:
 
             desirability = np.multiply(desirability, np.power(np.array(objective), target_weights[i]/np.sum(target_weights)).reshape(-1,1))
         return desirability
+  
+    def __get_interaction_list(self, interactions)
+        if interactions in ('classic', None):
+            interaction_list = set(Interaction.get_interaction_list()) - set('X_x_Y')
+        elif interactions == 'ridgeless':
+            interaction_list = set(Interaction.get_interaction_list())- set('X_average_if_not_Y', 'X_average_if_Y', 'X_if_Y_average')
+        elif interactions == 'quadratic':
+            interaction_list = ['X_x_Y']
+        print(interaction_list)
+        return interaction_list
     
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
                   interaction_list: list = None):
@@ -700,14 +724,16 @@ class LBM_Regression:
             variable_instant : boolean, if True, data and computed interactions will be rescaled according to the "variable-instant" method of Lesty et al. (1999)
             allow_autointeraction : boolean, if True, additional interactions of the features with themselves will be considered
             interaction_list : list, List of interactions that are found relevant to the studied problem
+                              'classic' : all interactions described by Lesty et al. 1982. Same as None
+                              'ridgeless' : all interactions except three (X_average_if_not_Y, X_average_if_Y, X_if_Y_average)
+                              'quadratic': to perform a classical polynomial regression
         
         Return :
             self
         
         """
-        if interaction_list is None:
-            interaction_list = Interaction.get_interaction_list()
-            print(interaction_list)
+      
+        interaction_list= self.__get_interaction_list(interaction_list)
 
         if scaler not in ['robust', 'standard', 'minmax']:
             raise ValueError(f'{scaler} method is not implemented,\n  Implemented methods "robust, minmax and standard"')
