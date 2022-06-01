@@ -270,7 +270,7 @@ class X_if_not_Y(Interaction):
     """
     X_if_not_Y: Response is high if X is high when Y is low
     operator: x & (y < max(y))
-    function: x*(max(y)-y)
+    function: x * (max(y) - y)
     """
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -285,7 +285,7 @@ class X_if_Y_average(Interaction):
     """
     X_if_Y_average: Response is high if X is high when Y is average
     operator: x & (min(y) < y < max(y))
-    function: x / [sqrt((max(y) + |min(y)|) / (500 + y**2))]
+    function: x / [sqrt((max(y) + |min(y)|) / 500 + y**2 )]
     """
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -293,14 +293,14 @@ class X_if_Y_average(Interaction):
         self.interaction = self.__class__.__name__
     
     def calc(self):
-        func = np.array(self.x / np.sqrt((self.max_y+np.abs(self.min_y)) / 500 + np.square(self.y))).reshape(-1,1)
+        func = np.array(self.x / np.sqrt((self.max_y + np.abs(self.min_y)) / 500 + np.square(self.y))).reshape(-1,1)
         return func
 
 class X_average_if_Y(Interaction):
     """
     X_average_if_Y: Response is high if X is average and Y is high
     operator: (min(x) < x < max(x)) & y
-    function: (y + |min(y)|) / [sqrt( (max(y) + |min(x)|) / (200 + x**2))]
+    function: (y + |min(y)|) / [sqrt( (max(y) + |min(x)|) / 200 + x**2 )]
     """
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -308,14 +308,14 @@ class X_average_if_Y(Interaction):
         self.interaction = self.__class__.__name__
         
     def calc(self):
-        func = np.array((np.abs(self.min_y)+self.y)/np.sqrt((self.max_x+np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
+        func = np.array((np.abs(self.min_y) + self.y) / np.sqrt((self.max_x + np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
         return func
 
 class X_average_if_not_Y(Interaction):
     """
     X_average_if_not_Y: Response is high if X is average and Y is low
     operator: (min(x) < x < max(x)) & min(y)
-    function: (max(y) - y) / [sqrt( (max(x) + |min(x)|) / (200 + x**2))]
+    function: (max(y) - y) / [sqrt( (max(x) + |min(x)|) / 200 + x**2 )]
     """
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
@@ -323,7 +323,7 @@ class X_average_if_not_Y(Interaction):
         self.interaction = self.__class__.__name__
         
     def calc(self):
-        func = np.array((self.max_y-self.y)/np.sqrt((self.max_x+np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
+        func = np.array((self.max_y - self.y) / np.sqrt((self.max_x + np.abs(self.min_x)) / 200 + np.square(self.x))).reshape(-1,1)
         return func
        
 
@@ -665,7 +665,7 @@ class LBM_Regression:
             elif isinstance(target, list):
                 goal= target[i]
             elif isinstance(target, (dict,)):
-                goal = target.get(prediction.columns[0][4:], None)
+                goal = target.get(prediction.columns[i][4:], None)
             else:
                 raise TypeError("target is either a string, a float, an integer or a list")
 
@@ -1055,7 +1055,7 @@ class LBM_Regression:
             print('==============================================================================')
             print('\n\n')
    
-    def __extract_features(self, experimental_domain: dict):
+    def extract_features(self, experimental_domain: dict):
         screened_var=[]
         set_mix_var =[]
         set_mix_values=[]
@@ -1067,9 +1067,10 @@ class LBM_Regression:
                     screened_var.append(key)
                 else:
                     if isinstance(experimental_domain[key][0], (int, float)):
-                        if key in self.mix:
-                            set_mix_var.append(key)
-                            set_mix_values.append(experimental_domain[key][0])
+                        if self.mix is not None:
+                            if key in self.mix:
+                                set_mix_var.append(key)
+                                set_mix_values.append(experimental_domain[key][0])
                         else:
                             set_var.append(key)
                             set_values.append(experimental_domain[key][0])
@@ -1082,7 +1083,7 @@ class LBM_Regression:
         
     def __generate_ternary_matrix(self, experimental_domain, mix, alpha, size, random_state):
         #list the features to plot
-        var, set_mix_var, set_mix_values, set_var, set_values = self.__extract_features(experimental_domain) 
+        var, set_mix_var, set_mix_values, set_var, set_values = self.extract_features(experimental_domain) 
         
         #generate a dataset and scale to right maximum
         Arr = (self.mixmax - self.mixmin - sum(set_mix_values)) * self.__mix_features_generator(alpha, size, random_state, var) + self.mixmin
@@ -1348,62 +1349,55 @@ class Display:
     
     def response_surface(self, X: object = None, Y: object = None, experimental_domain: dict=None, size: int = 10000):
         #If variables are not defined by user, get the variables that were use for modelling
-        if self.model.with_fit:
+        if self.lbm_model.with_fit:
             if X is None:
-                X = self.model.X_start 
+                X = self.lbm_model.X_start 
             if Y is None:
-                Y= self.model.y
+                Y= self.lbm_model.y
             if experimental_domain is None:
-                experimental_domain = self.model.experimental_domain
+                experimental_domain = self.lbm_model.experimental_domain
         else : 
             #if fit method has not been used yet -> user must define X and Y
             if (X is None) or (Y is None):
                 raise ValueError('X or Y must be defined if lbm_model.fit() has not been called yet')
         
         #List the variables to plot in the model
-        screened_var, *others = self.model.__extract_features(experimental_domain)
+        screened_var, *others = self.lbm_model.extract_features(experimental_domain)
+        print('screened_var', screened_var)
         
         #generate the data that will be plotted
-        X_complete = self.model.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
+        X_complete = self.lbm_model.generator(experimental_domain= experimental_domain, mix= None, alpha= None, size=size)
         a, b = np.meshgrid(X_complete[screened_var[0]].values, X_complete[screened_var[1]].values)
         
-        Plot_df= pd.DataFrame(np.ones(len(a.ravel()), X.complete.shape[1]), columns=X_complete.columns)
+        Plot_df= pd.DataFrame(np.ones((len(a.ravel()), X_complete.shape[1])), columns=X_complete.columns)
+        Plot_df[screened_var[0]] = a.ravel()
+        Plot_df[screened_var[1]] = b.ravel()
+        
         #Set the fixed variables to the desired value
         Arr=[]
         Arr_name=[]
         for key in (set(experimental_domain.keys())-set(screened_var)):
             if not isinstance(experimental_domain[key][0], (int, float)):
-                Arr.append(0)
+                Arr.append(np.mean(experimental_domain[key][1:2]))
             else:
                 Arr.append(experimental_domain[key][0])
             Arr_name.append(key)
         
         #fill the columns with the fixed values
-        Plot_df[Arr_name] = pd.DataFrame(np.full((size, len(Arr)), Arr), columns = Arr_name)
+        Plot_df[Arr_name] = pd.DataFrame(np.full((a.size, len(Arr)), Arr), columns = Arr_name)
+        #print(Plot_df[Arr_name])
         
         #Compute the output values of the data
-        Y = model.predict(Plot_df[model.X_start.columns])
+        Y = self.lbm_model.predict(Plot_df[self.lbm_model.X_start.columns])
 
         #Plot the surface for each target
-        a,b = Plot_df[screened_var[0]].values, Plot_df[screened_var[0]].values
-        
-        for c in Y.keys():
-            plot_surface(a.values.flatten(), b.values.flatten(), Y[c].values.flatten())
-            
-            """
-            fig = plt.figure(figsize=(40,40))
-            ax = plt.axes(projection='3d')
-            Cmap = plt.get_cmap('viridis')
-            Z = Y[c].values.flatten()
-            surf = ax.plot_trisurf(a.values.flatten(), b.values.flatten(), Z, cmap=Cmap, antialiased=True, edgecolor='none')
-            fig.colorbar(surf, ax =ax, shrink=0.5, aspect=5)
-            ax.set_xlabel(f'{a.name}')
-            ax.set_ylabel(f'{b.name}')
-            ax.set_zlabel(f'{c}')
-            ax.set_title(f'{c}=f({a.name, b.name}')
-                    
-            fig.show()
-            """
+        a,b = Plot_df[screened_var[0]], Plot_df[screened_var[1]]
+        #print(a,b)
+
+        for c in Y:
+            #print(c)
+            self.plot_surface(a, b, Y[c])
+
 
     def sensibility_analysis(self, experimental_domain: dict, plot: bool = True, return_sobol: bool=False):
         
@@ -1492,32 +1486,31 @@ class Outliers_Inspection:
 
     def __init__(self, other:object):
         self.other = other
-        self.frame_list = []
+        self.outliers = {}
         for i in self.other.model.keys():
-            self.outliers = outliers_influence.OLSInfluence(self.other.model[i]['model_final'])
-            self.frame_list.append(self.outliers.summary_frame())
+            self.outliers[i] = outliers_influence.OLSInfluence(self.other.model[i]['model_final'])
+            #self.frame_list[i] = self.outliers.summary_frame()
         
     def cooks_distance(self, plot: bool =True):
         for i in self.other.model.keys():
-            threshold = 4/self.outliers.summary_frame().shape[0]
+            threshold = 4/self.outliers[i].summary_frame().shape[0]
             
             print("<!> in development <!>")
             print(f'threshold (4/n) = {round(threshold,3)}' )
             outliers_list= []
-            for n in range(0,self.outliers.summary_frame().shape[0]):
-                if self.outliers.summary_frame().at[n, 'cooks_d'] >= threshold:
-                    outliers_list.append((n, self.outliers.summary_frame().at[n, 'cooks_d']))
+            for n in range(0,self.outliers[i].summary_frame().shape[0]):
+                if self.outliers[i].summary_frame().at[n, 'cooks_d'] >= threshold:
+                    outliers_list.append((n, self.outliers[i].summary_frame().at[n, 'cooks_d']))
             print(f'potential outliers : {outliers_list}')
             if plot:
                 #plt.figure()
-                plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.outliers.summary_frame()['cooks_d'], label=i)
-            print(self.outliers.summary_table())
-            
-        plt.plot([0, self.outliers.summary_frame().shape[0]], [threshold, threshold], c='r', label='threshold')
-        plt.xlabel('Observation indices')
-        plt.ylabel('Cook\'s distance')
-        plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
-        plt.show()
+                plt.scatter(range(0,self.outliers[i].summary_frame().shape[0]), self.outliers[i].summary_frame()['cooks_d'], label=i)
+                plt.plot([0, self.outliers[i].summary_frame().shape[0]], [threshold, threshold], c='r', label= f'threshold')
+                plt.xlabel('Observation indices')
+                plt.ylabel('Cook\'s distance')
+                plt.legend(bbox_to_anchor=(1.05, 0.85), loc='upper left', borderaxespad=0.)
+                plt.show()
+            print(self.outliers[i].summary_table())
         
         #return self.frame_list
     
