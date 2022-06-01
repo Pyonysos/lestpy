@@ -703,8 +703,8 @@ class LBM_Regression:
         return desirability
   
     def __get_interaction_list(self, interactions)
-        if interactions is None:
-            interaction_list = Interaction.get_interaction_list()
+        if interactions in ('classic', None):
+            interaction_list = set(Interaction.get_interaction_list()) - set('X_x_Y')
         elif interactions == 'ridgeless':
             interaction_list = set(Interaction.get_interaction_list())- set('X_average_if_not_Y', 'X_average_if_Y', 'X_if_Y_average')
         elif interactions == 'quadratic':
@@ -724,17 +724,16 @@ class LBM_Regression:
             variable_instant : boolean, if True, data and computed interactions will be rescaled according to the "variable-instant" method of Lesty et al. (1999)
             allow_autointeraction : boolean, if True, additional interactions of the features with themselves will be considered
             interaction_list : list, List of interactions that are found relevant to the studied problem
+                              'classic' : all interactions described by Lesty et al. 1982. Same as None
+                              'ridgeless' : all interactions except three (X_average_if_not_Y, X_average_if_Y, X_if_Y_average)
+                              'quadratic': to perform a classical polynomial regression
         
         Return :
             self
         
         """
-        '''
-        # interaction_list= self.__get_interaction_list(interaction_list)
-        if interaction_list is None:
-            interaction_list = Interaction.get_interaction_list()
-            print(interaction_list)
-        '''
+      
+        interaction_list= self.__get_interaction_list(interaction_list)
 
         if scaler not in ['robust', 'standard', 'minmax']:
             raise ValueError(f'{scaler} method is not implemented,\n  Implemented methods "robust, minmax and standard"')
