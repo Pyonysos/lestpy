@@ -444,13 +444,14 @@ class LBM_Regression:
                 2. Lesty, Michel. "Une nouvelle approche dans le choix des régresseurs de la régression multiple en présence d’interactions et de colinéarités". revue Modulad 22 (1999): 41‑77.
                 3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
     """
-    
+
     def __init__(self):
         self.with_optimization = False
         self.with_interactions = False
         self.with_fit = False
         self.with_transform = False
         self.with_variable_instant = False
+        self.graph = {}
 
     def __autointeraction_param(self, allow_autointeraction):      
          return 1 if allow_autointeraction == True else 0
@@ -613,15 +614,20 @@ class LBM_Regression:
         denominator = np.sqrt(np.subtract(np.ones(rAC.shape),rAC_sqr)).dot(np.sqrt(np.subtract(np.ones(rBC.shape),rBC_sqr)))
 
         #avoid zero division
-        denominator[denominator==0] = 1000
-
-
-        pcorrelation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
-
+        #denominator[denominator==0] = 1000
+        print('hello')
+        
+        #pcorrelation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
+        pcorrelation_matrix = pd.DataFrame(np.where(denominator != 0, numerator/denominator, -np.inf), columns=correlation_matrix.columns)
+        
+        '''
         for i,j in range(pcorrelation_matrix.shape[0], pcorrelation_matrix.shape[0]):
             pcorrelation_matrix.iloc[i,j] = 1
+        '''
 
-        return pcorrelation_matrix
+        return np.fill_diagonal(pcorrelation_matrix, 1)
+
+        #return pcorrelation_matrix
     
     
     def __model_evaluation(self, mat_res):
@@ -801,8 +807,9 @@ class LBM_Regression:
         start = time.time()
         
         if X is None:
-          X= self.rescaled_features
+          X = self.rescaled_features
         
+
         if type(threshold) is not float:
             raise TypeError('threshold must be a float between 0 and 1')
         
