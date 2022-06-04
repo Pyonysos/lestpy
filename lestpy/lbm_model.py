@@ -606,26 +606,33 @@ class LBM_Regression:
         numerator = np.subtract(matrix, rAC.dot(rBC))
 
         #avoid negative values in sqrt
+        # rAC_sqr = np.square(rAC)
+        # rAC_sqr[rAC_sqr > 1] = 1 #0.99
+        # rBC_sqr = np.square(rBC)
+        # rBC_sqr[rBC_sqr > 1] = 1 #0.99
+
+        # rAC_sqr = np.where(rAC > 1, 1, np.square(rAC))
+        # rBC_sqr = np.where(rBC > 1, 1, np.square(rBC))
         rAC_sqr = np.square(rAC)
-        rAC_sqr[rAC_sqr > 1]=0.99
         rBC_sqr = np.square(rBC)
-        rBC_sqr[rBC_sqr > 1]=0.99
 
         denominator = np.sqrt(np.subtract(np.ones(rAC.shape),rAC_sqr)).dot(np.sqrt(np.subtract(np.ones(rBC.shape),rBC_sqr)))
 
-        #avoid zero division
+        ## to be removed after testing
         #denominator[denominator==0] = 1000
-        print('hello')
-        
         #pcorrelation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
-        pcorrelation_matrix = pd.DataFrame(np.where(denominator != 0, numerator/denominator, -np.inf), columns=correlation_matrix.columns)
+        # for i,j in range(pcorrelation_matrix.shape[0], pcorrelation_matrix.shape[0]):
+        #     pcorrelation_matrix.iloc[i,j] = 1
         
-        '''
-        for i,j in range(pcorrelation_matrix.shape[0], pcorrelation_matrix.shape[0]):
-            pcorrelation_matrix.iloc[i,j] = 1
-        '''
-
-        return np.fill_diagonal(pcorrelation_matrix, 1)
+        #avoid zero division
+        np.seterr(invalid='ignore')
+        
+        mask = (denominator == 0) | (denominator == np.nan) 
+        div_m = np.where(mask, 0, numerator/denominator)
+        
+        np.seterr()
+        
+        return pd.DataFrame(div_m, columns=correlation_matrix.columns)
 
         #return pcorrelation_matrix
     
