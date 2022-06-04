@@ -236,7 +236,7 @@ class X_or_not_Y(Interaction):
     """
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} or not {self.y.name}'
+        self.name = f'{self.x.name} + {self.y.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
     
     def calc(self):
@@ -711,7 +711,7 @@ class LBM_Regression:
         return desirability
 
     def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list = None):
+                  interaction_list: list = 'classic'):
         """
         transform method :
         
@@ -848,7 +848,7 @@ class LBM_Regression:
             self.model[i]['model_final'] = sm.OLS(y_array, data_array).fit()
             #print(self.model[i]['model_final'].summary())
             print(f'summary of the model for {i}:')
-            print(self.model[i]['model_final'].summary())
+            print(self.model[i]['model_final'].summary(xname= list(data.columns)))
             print('==============================================================================')
             print('\n\n')
 
@@ -1432,7 +1432,8 @@ class Display:
             'names' : list(experimental_domain.keys()),
             'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
         }
-        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.lbm_model.X.columns)
+
+        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= experimental_domain.keys())
         predictions = self.lbm_model.predict(param_values)
         
         for c in predictions:
