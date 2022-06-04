@@ -557,10 +557,6 @@ class LBM_Regression:
         compute the correlation matrix
         '''
         name = y.name if isinstance(y, pd.Series) else y.columns
-        #if hasattr(y, 'name'):
-        #    name = y.name
-        #else:
-        #    name = y.columns
 
         #deprecated : mat = np.corrcoef(pd.concat([X, y], axis=1).T)
         mat = np.ma.corrcoef(pd.concat([X, y], axis=1).T)
@@ -737,7 +733,7 @@ class LBM_Regression:
             interaction_list : list, List of interactions that are found relevant to the studied problem
                               'classic' : all interactions described by Lesty et al. 1982. Same as None
                               'ridgeless' : all interactions except three (X_average_if_not_Y, X_average_if_Y, X_if_Y_average)
-                              'quadratic': to perform a classical polynomial regression
+                              'quadratic': to perform a classical quadratic polynomial regression
         
         Return :
             self
