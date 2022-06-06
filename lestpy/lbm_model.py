@@ -27,10 +27,8 @@ https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-
 """
 
 #progressively remove sklearn imports
-from sklearn import model_selection
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
 from sklearn.model_selection import LeaveOneOut
 
 #from scipy.stats import dirichlet
@@ -1059,9 +1057,15 @@ class LBM_Regression:
             self.with_optimization = True
             return res   
     
+    def r2_score(self, y, y_pred):
+        y_true, y_pred = np.array(y), np.array(y_pred)
+        numerator = ((y_true - y_pred) ** 2).sum(axis=0, dtype=np.float64)
+        denominator = ((y_true - np.average(y_true, axis=0)) ** 2).sum(axis=0, dtype=np.float64)
+        return 1 - (numerator / denominator)
+
     def fitting_score(self, y):
         
-        self.model[y.name]['r2score'] = r2_score(y, self.model[y.name]['y_pred']).round(3)
+        self.model[y.name]['r2score'] = self.r2_score(y, self.model[y.name]['y_pred']).round(3)
         self.model[y.name]['adjustedr2score'] = (1-(1-self.model[y.name]['r2score'])*(self.model[y.name]['results'].shape[0]-1)/(self.model[y.name]['results'].shape[0]-self.model[y.name]['nb_predictor']-1)).round(3)
         self.model[y.name]['Q2_obs'] = self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1]
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
@@ -1570,9 +1574,9 @@ class Outliers_Inspection:
             self.mahal_d = np.dot(left_term, diff_x_u.T)
         #ajouter Mahalanobis a outlier summary
         
-        if plot:
-          print("<!> in development <!>")
-          plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
+            if plot:
+                print("<!> in development <!>")
+                plt.scatter(range(0,self.outliers[i].summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
         
         if return_diagonal:
             return self.mahal_d.diagonal()
