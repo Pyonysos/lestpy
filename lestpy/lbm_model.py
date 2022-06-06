@@ -1,5 +1,6 @@
 """
-TO DO:
+Pynteraction
+
 Improve documentation and type hinting using module typing
 
 simplify experimetnal-domain
