@@ -420,6 +420,29 @@ class Difference_X_Y(Interaction):
     def calc(self):
         func = np.array(self.x-self.y).reshape(-1,1)
         return func
+"""
+=========================================================================================================================================
+                                            TRANSFORMER TOOLS
+=========================================================================================================================================
+"""
+  class Transformer:
+      def __init__(self):
+        ...
+      
+      def fit(self, X, method):
+          self.a = 0
+          self.denominator = 1
+      
+      def transform(self,X)
+          return (X - self.a) / self.denominator
+          
+      def fit_transform(self, X):
+        self.fit(X)
+        self.transform(X)
+      
+      def inverse_transform(self,X):
+          return (X * self.denominator) + self.a
+        
 
 """
 =========================================================================================================================================
@@ -504,7 +527,7 @@ class LBM_Regression:
         '''
         robust : a, b = q(1), q(3)
         minmax : a, b = min(X), max(X)
-        Standard : a, b = std(X), mu(x)+std(x)
+        Standard : a, b = mu(X), std(X)
         scaling = (X - a) / (b - a)
         '''
         
