@@ -501,6 +501,14 @@ class LBM_Regression:
         else:
           raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
         
+        '''
+        robust : a, b = q(1), q(3)
+        minmax : a, b = min(X), max(X)
+        Standard : a, b = std(X), mu(x)+std(x)
+        scaling = (X - a) / (b - a)
+        '''
+        
+        
         return self.transformer.fit_transform(X, y)
     
     def __variable_instant(self, X):
