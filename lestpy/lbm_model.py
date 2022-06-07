@@ -27,10 +27,7 @@ https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-
 =========================================================================================================================================
 """
 
-#progressively remove sklearn imports
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import LeaveOneOut
 
 #from scipy.stats import dirichlet
 
@@ -600,24 +597,12 @@ class LBM_Regression:
 
         numerator = np.subtract(matrix, rAC.dot(rBC))
 
-        #avoid negative values in sqrt
-        # rAC_sqr = np.square(rAC)
-        # rAC_sqr[rAC_sqr > 1] = 1 #0.99
-        # rBC_sqr = np.square(rBC)
-        # rBC_sqr[rBC_sqr > 1] = 1 #0.99
-
         # rAC_sqr = np.where(rAC > 1, 1, np.square(rAC))
         # rBC_sqr = np.where(rBC > 1, 1, np.square(rBC))
         rAC_sqr = np.square(rAC)
         rBC_sqr = np.square(rBC)
 
         denominator = np.sqrt(np.subtract(np.ones(rAC.shape),rAC_sqr)).dot(np.sqrt(np.subtract(np.ones(rBC.shape),rBC_sqr)))
-
-        ## to be removed after testing
-        #denominator[denominator==0] = 1000
-        #pcorrelation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
-        # for i,j in range(pcorrelation_matrix.shape[0], pcorrelation_matrix.shape[0]):
-        #     pcorrelation_matrix.iloc[i,j] = 1
         
         #avoid zero division
         np.seterr(invalid='ignore')
@@ -628,31 +613,33 @@ class LBM_Regression:
         np.seterr()
         
         return pd.DataFrame(div_m, columns=correlation_matrix.columns)
-
-        #return pcorrelation_matrix
     
-
+    def leave_one_out(self, X):
+        for m in range(X.shape[0]):
+            yield  ( [True if n != m else False for n in range(X.shape[0]) ], [False if n != m else True for n in range(X.shape[0])])  
 
     def __model_evaluation(self, mat_res):
     
-        model = LinearRegression()
 
         #Calcul de Q2 global
         X = np.array(mat_res.iloc[:,1:])
         y = np.array(mat_res.iloc[:,0])
         
-        loot=LeaveOneOut()
-        loot.get_n_splits(X)
 
         SSres = []
         SStot = []
 
+        X = sm.add_constant(X)
+
         #Leave-one-out cross validation
-        for train_index, test_index in loot.split(X):#( (np.delete(X, n, 0), X[n,:]) for n in range(X.shape[0]) ): #loot.split(X): #
+        for train_index, test_index in self.leave_one_out(X):
+
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
+                
+                model_ols = sm.OLS(y_train, X_train).fit()
+                y_pred = model_ols.predict(X_test)
+
                 SSres.append((float(y_test[0])-float(y_pred[0]))**2)
                 SStot.append(float(y_test[0]))
 
@@ -690,7 +677,6 @@ class LBM_Regression:
             else:
                 location = prediction
         
-            #if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
             if isinstance(target, (str, float, int, type(None))):
                 goal = target
             elif isinstance(target, list):
@@ -892,10 +878,6 @@ class LBM_Regression:
         self.y_pred = pd.DataFrame()
         
         y = self.y if isinstance(self.y, pd.DataFrame) else self.y.to_frame()
-        #try:
-        #    y = self.y.to_frame()
-        #except:
-        #    y = self.y
         
         for i in y:
             new_X = None
@@ -1050,7 +1032,6 @@ class LBM_Regression:
 
             res = pd.concat((sample, prediction, desirability), axis=1)
             
-            #output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3)), axis=1)
             output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(), :], 3)), axis=1)
             output.columns = ['Mean of the 5 best results', 'Best result']
             
@@ -1138,9 +1119,6 @@ class LBM_Regression:
         
         
         return var, Ternary_X[self.X_start.columns], Results
-
-
-
 
 
 
