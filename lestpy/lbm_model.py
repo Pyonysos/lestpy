@@ -622,7 +622,7 @@ class LBM_Regression:
         #avoid zero division
         np.seterr(invalid='ignore')
         
-        mask = (denominator == 0) | (denominator == np.nan) 
+        mask = (denominator == 0) | np.isnan(denominator)
         div_m = np.where(mask, 0, numerator/denominator)
         
         np.seterr()
@@ -631,7 +631,8 @@ class LBM_Regression:
 
         #return pcorrelation_matrix
     
-    
+
+
     def __model_evaluation(self, mat_res):
     
         model = LinearRegression()
@@ -647,7 +648,7 @@ class LBM_Regression:
         SStot = []
 
         #Leave-one-out cross validation
-        for train_index, test_index in loot.split(X):
+        for train_index, test_index in loot.split(X):#( (np.delete(X, n, 0), X[n,:]) for n in range(X.shape[0]) ): #loot.split(X): #
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
                 model.fit(X_train, y_train)
@@ -1060,8 +1061,8 @@ class LBM_Regression:
     
     def r2_score(self, y, y_pred):
         y_true, y_pred = np.array(y), np.array(y_pred)
-        numerator = ((y_true - y_pred) ** 2).sum(axis=0, dtype=np.float64)
-        denominator = ((y_true - np.average(y_true, axis=0)) ** 2).sum(axis=0, dtype=np.float64)
+        numerator = ((y_true - y_pred) ** 2).sum(axis = 0, dtype = np.float64)
+        denominator = ((y_true - np.average(y_true, axis = 0)) ** 2).sum(axis = 0, dtype = np.float64)
         return 1 - (numerator / denominator)
 
     def fitting_score(self, y):
