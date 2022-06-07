@@ -15,9 +15,6 @@ https://likegeeks.com/3d-plotting-in-python/
 plot correlation iconography with graph:
 https://stackoverflow.com/questions/23184306/draw-network-and-grouped-vertices-of-the-same-community-or-partition
 https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-distributed-on-the-surface-of-a-unit-sphere
-
--implement decorator for time measurement
-
 """
 
 
