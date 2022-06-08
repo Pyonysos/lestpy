@@ -425,37 +425,41 @@ class Difference_X_Y(Interaction):
                                             TRANSFORMER TOOLS
 =========================================================================================================================================
 """
-  class Transformer:
-      def __init__(self):
-          self.with_fit = False
-          self.with_transform = False
+class Transformer:
+    def __init__(self):
+        self.with_fit = False
+        self.with_transform = False
       
-      def fit(self, X, method):
-          if method == 'robust':
-              self.a = np.percentile(X, 25, axis=0)
-              self.denominator = np.percentile(X, 75, axis=0) - self.a
-          elif method == 'minmax':
-              self.a = np.min(X, axis=0)
-              self.denominator = np.max(X, axis=0) - self.a
-          elif method == 'standard':
-              self.a = np.mean(X, axis=0)
-              self.denominator = np.std(X, axis=0)
-          else:
+    def fit(self, X, method):
+        if method == 'robust':
+            self.a = np.nanpercentile(X, 50, axis=0)
+            self.denominator = np.nanpercentile(X, 75, axis=0) -  np.nanpercentile(X, 25, axis=0)
+        elif method == 'minmax':
+            self.a = np.min(X, axis=0)
+            self.denominator = np.max(X, axis=0) -  np.min(X, axis=0)
+        elif method == 'standard':
+            self.a = np.mean(X, axis=0)
+            self.denominator = np.std(X, axis=0)
+        else:
             raise ValueError(f'method {method} is not known')
-          self.with_fit = True
+        
+        self.a = np.array(self.a).reshape(1, X.shape[1])
+        self.denominator = np.array(self.denominator).reshape(1, X.shape[1])
+        self.with_fit = True
       
-      def transform(self,X):
-          if self.with_fit:
-              self.with_transform = True
-              return (X - self.a) / self.denominator
+    def transform(self,X):
+        if self.with_fit:
+            self.with_transform = True
+            return (X - self.a) / self.denominator
               
-      def fit_transform(self, X):
-          self.fit(X)
-          self.transform(X)
+    def fit_transform(self, X, method):
+        self.fit(X, method)
+        return self.transform(X)
+        
       
-      def inverse_transform(self,X):
-          if self.with_transform:
-              return (X * self.denominator) + self.a
+    def inverse_transform(self,X):
+        if self.with_transform:
+            return (X * self.denominator) + self.a
         
 
 """
@@ -530,23 +534,17 @@ class LBM_Regression:
         
         #normalisation des données
         if scaler =='robust':
-            self.transformer = RobustScaler()
+            self.transformer = RobustScaler() # Transformer() # RobustScaler() #
         elif scaler =='minmax':
-            self.transformer = MinMaxScaler()
+            self.transformer = Transformer() #MinMaxScaler() #Transformer() #
         elif scaler =='standard':
-            self.transformer = StandardScaler()
+            self.transformer = Transformer() #StandardScaler() #Transformer() #
         else:
-          raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
-        
-        '''
-        robust : a, b = q(1), q(3)
-        minmax : a, b = min(X), max(X)
-        Standard : a, b = mu(X), std(X)
-        scaling = (X - a) / (b - a)
-        '''
+            raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
         
         
-        return self.transformer.fit_transform(X, y)
+        mat = self.transformer.fit_transform(X, scaler)
+        return mat
     
     def __variable_instant(self, X):
         """
@@ -556,6 +554,7 @@ class LBM_Regression:
         returns: 
             var_inst : DataFrame of transformed values
         """
+        
         eye = np.eye(X.shape[0], X.shape[0])
 
         X_sqr = np.sum(np.multiply(X, X), axis=0)
@@ -789,6 +788,7 @@ class LBM_Regression:
         #Step2: Rescale data
         try:
             self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
+            #print('X.shape', self.X.shape)
         except:
             raise NotImplementedError('rescaling data failed')
     
