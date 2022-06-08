@@ -440,6 +440,8 @@ class Difference_X_Y(Interaction):
           elif method == 'standard':
               self.a = np.mean(X, axis=0)
               self.denominator = np.std(X, axis=0)
+          else:
+            raise ValueError(f'method {method} is not known')
           self.with_fit = True
       
       def transform(self,X):
