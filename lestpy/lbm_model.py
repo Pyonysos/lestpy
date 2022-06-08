@@ -428,6 +428,7 @@ class Difference_X_Y(Interaction):
   class Transformer:
       def __init__(self):
           self.with_fit = False
+          self.with_transform = False
       
       def fit(self, X, method):
           if method == 'robust':
@@ -441,15 +442,19 @@ class Difference_X_Y(Interaction):
               self.denominator = np.std(X, axis=0)
           self.with_fit = True
       
-      def transform(self,X)
-          return (X - self.a) / self.denominator
+      def transform(self,X):
+          if self.with_fit:
+              self.with_transform = True
+              return (X - self.a) / self.denominator
+              
           
       def fit_transform(self, X):
           self.fit(X)
           self.transform(X)
       
       def inverse_transform(self,X):
-          return (X * self.denominator) + self.a
+          if self.with_transform:
+              return (X * self.denominator) + self.a
         
 
 """
