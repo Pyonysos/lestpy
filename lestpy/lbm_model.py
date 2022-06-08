@@ -449,7 +449,6 @@ class Difference_X_Y(Interaction):
               self.with_transform = True
               return (X - self.a) / self.denominator
               
-          
       def fit_transform(self, X):
           self.fit(X)
           self.transform(X)
