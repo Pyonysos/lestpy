@@ -430,8 +430,14 @@ class Difference_X_Y(Interaction):
         ...
       
       def fit(self, X, method):
-          self.a = 0
-          self.denominator = 1
+          if method == 'robust':
+              self.a = 0
+              self.denominator = 1
+          elif method == 'minmax':
+              self.a = np.min(X, axis=0)
+              self.denominator = np.max(X, axis=0) - self.a
+          elif method == 'standard':
+              ...
       
       def transform(self,X)
           return (X - self.a) / self.denominator
