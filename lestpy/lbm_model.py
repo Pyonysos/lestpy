@@ -24,8 +24,7 @@ https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-
 =========================================================================================================================================
 """
 
-from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
-
+#from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 #from scipy.stats import dirichlet
 
 from SALib.sample import saltelli
@@ -434,6 +433,7 @@ class Transformer:
         if method == 'robust':
             self.a = np.nanpercentile(X, 50, axis=0)
             self.denominator = np.nanpercentile(X, 75, axis=0) -  np.nanpercentile(X, 25, axis=0)
+            self.denominator[self.denominator == 0.0] = 1.0 #handle zero in denominator
         elif method == 'minmax':
             self.a = np.min(X, axis=0)
             self.denominator = np.max(X, axis=0) -  np.min(X, axis=0)
@@ -442,7 +442,7 @@ class Transformer:
             self.denominator = np.std(X, axis=0)
         else:
             raise ValueError(f'method {method} is not known')
-        
+
         self.a = np.array(self.a).reshape(1, X.shape[1])
         self.denominator = np.array(self.denominator).reshape(1, X.shape[1])
         self.with_fit = True
@@ -534,7 +534,7 @@ class LBM_Regression:
         
         #normalisation des données
         if scaler =='robust':
-            self.transformer = RobustScaler() # Transformer() # RobustScaler() #
+            self.transformer = Transformer() # RobustScaler() #
         elif scaler =='minmax':
             self.transformer = Transformer() #MinMaxScaler() #Transformer() #
         elif scaler =='standard':
@@ -544,6 +544,7 @@ class LBM_Regression:
         
         
         mat = self.transformer.fit_transform(X, scaler)
+
         return mat
     
     def __variable_instant(self, X):
@@ -746,7 +747,7 @@ class LBM_Regression:
             desirability = np.multiply(desirability, np.power(np.array(objective), target_weights[i]/np.sum(target_weights)).reshape(-1,1))
         return desirability
 
-    def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
+    def transform(self, X, y=None, scaler: str ='standard', variable_instant:bool=True, allow_autointeraction=False, 
                   interaction_list: list = 'classic'):
         """
         transform method :
@@ -1228,14 +1229,17 @@ class Display:
 
     def __plot_residues(self, y, y_pred) :
             diff = y_pred - y
-            plt.scatter(y, diff)
+            sc = plt.scatter(y, diff, c= y.index, cmap = 'viridis')
+            plt.colorbar(sc)
             plt.xlabel('residual distance')
             plt.ylabel('observation number')
             plt.title('Distribution of the residuals')
+            
     
     def fit(self, y):
-        plt.scatter(y, self.lbm_model.model[y.name]['y_pred'])
-        plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='r')
+        sc = plt.scatter(y, self.lbm_model.model[y.name]['y_pred'], c = y.index, cmap='viridis')
+        plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='lightgrey')
+        plt.colorbar(sc)
         plt.xlabel(f'measured values of {self.lbm_model.model[y.name]["results"].iloc[:,0].name}')
         plt.ylabel(f'predicted values of {self.lbm_model.model[y.name]["results"].iloc[:,0].name}')
         plt.title('Measured vs. predicted values')

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
 
-VERSION = '0.0.10'
+VERSION = '0.0.11'
 DESCRIPTION = 'Regression model with logical interactions'
 
 # The directory containing this file
@@ -21,7 +21,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description = README,
     packages = find_packages(),
-    install_requires = ['pandas', 'sklearn', 'scipy', 'matplotlib', 'statsmodels', 'SALib'],
+    install_requires = ['pandas', 'matplotlib', 'statsmodels', 'SALib'],
     keywords = ['python', 'modeling', 'regression'],
     url = 'https://github.com/Pyonysos/lestpy',
     classifiers = [

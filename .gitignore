@@ -6,3 +6,9 @@ jspm_packages/
 # dotenv environment variables file
 .env
 .env.test
+
+valentine.ipynb
+valentine.html
+IRIS.ipynb
+lestpy.ipynb
+Markdow_lestpy.ipynb
