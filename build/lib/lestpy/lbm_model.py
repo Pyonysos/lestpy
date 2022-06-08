@@ -1,5 +1,6 @@
 """
-TO DO:
+Pynteraction
+
 Improve documentation and type hinting using module typing
 
 simplify experimetnal-domain
@@ -14,9 +15,6 @@ https://likegeeks.com/3d-plotting-in-python/
 plot correlation iconography with graph:
 https://stackoverflow.com/questions/23184306/draw-network-and-grouped-vertices-of-the-same-community-or-partition
 https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-distributed-on-the-surface-of-a-unit-sphere
-
--implement decorator for time measurement
-
 """
 
 
@@ -26,13 +24,7 @@ https://stackoverflow.com/questions/33976911/generate-a-random-sample-of-points-
 =========================================================================================================================================
 """
 
-#progressively remove sklearn imports
-from sklearn import model_selection
-from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-from sklearn.model_selection import LeaveOneOut
-
+#from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 #from scipy.stats import dirichlet
 
 from SALib.sample import saltelli
@@ -236,7 +228,7 @@ class X_or_not_Y(Interaction):
     """
     def __init__(self, x: pd.Series, y: pd.Series, max_x: float=None, min_x: float=None, max_y: float=None, min_y: float=None) -> None:
         super().__init__(x, y, max_x, min_x, max_y, min_y)
-        self.name = f'{self.x.name} or not {self.y.name}'
+        self.name = f'{self.x.name} + {self.y.name} or not {self.y.name}'
         self.interaction = self.__class__.__name__
     
     def calc(self):
@@ -427,6 +419,48 @@ class Difference_X_Y(Interaction):
     def calc(self):
         func = np.array(self.x-self.y).reshape(-1,1)
         return func
+"""
+=========================================================================================================================================
+                                            TRANSFORMER TOOLS
+=========================================================================================================================================
+"""
+class Transformer:
+    def __init__(self):
+        self.with_fit = False
+        self.with_transform = False
+      
+    def fit(self, X, method):
+        if method == 'robust':
+            self.a = np.nanpercentile(X, 50, axis=0)
+            self.denominator = np.nanpercentile(X, 75, axis=0) -  np.nanpercentile(X, 25, axis=0)
+            self.denominator[self.denominator == 0.0] = 1.0 #handle zero in denominator
+        elif method == 'minmax':
+            self.a = np.min(X, axis=0)
+            self.denominator = np.max(X, axis=0) -  np.min(X, axis=0)
+        elif method == 'standard':
+            self.a = np.mean(X, axis=0)
+            self.denominator = np.std(X, axis=0)
+        else:
+            raise ValueError(f'method {method} is not known')
+
+        self.a = np.array(self.a).reshape(1, X.shape[1])
+        self.denominator = np.array(self.denominator).reshape(1, X.shape[1])
+        self.with_fit = True
+      
+    def transform(self,X):
+        if self.with_fit:
+            self.with_transform = True
+            return (X - self.a) / self.denominator
+              
+    def fit_transform(self, X, method):
+        self.fit(X, method)
+        return self.transform(X)
+        
+      
+    def inverse_transform(self,X):
+        if self.with_transform:
+            return (X * self.denominator) + self.a
+        
 
 """
 =========================================================================================================================================
@@ -444,13 +478,14 @@ class LBM_Regression:
                 2. Lesty, Michel. "Une nouvelle approche dans le choix des régresseurs de la régression multiple en présence d’interactions et de colinéarités". revue Modulad 22 (1999): 41‑77.
                 3. Derringer, George and Suich, Ronald. "Simultaneous Optimization of Several Response Variables". Journal of Quality Technology 12 (1980): 214-219. 
     """
-    
+
     def __init__(self):
         self.with_optimization = False
         self.with_interactions = False
         self.with_fit = False
         self.with_transform = False
         self.with_variable_instant = False
+        self.graph = {}
 
     def __autointeraction_param(self, allow_autointeraction):      
          return 1 if allow_autointeraction == True else 0
@@ -499,15 +534,18 @@ class LBM_Regression:
         
         #normalisation des données
         if scaler =='robust':
-            self.transformer = RobustScaler()
+            self.transformer = Transformer() # RobustScaler() #
         elif scaler =='minmax':
-            self.transformer = MinMaxScaler()
+            self.transformer = Transformer() #MinMaxScaler() #Transformer() #
         elif scaler =='standard':
-            self.transformer = StandardScaler()
+            self.transformer = Transformer() #StandardScaler() #Transformer() #
         else:
-          raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
+            raise ValueError(f"{scaler} is not implemented. please use robust, standard or minmax")
         
-        return self.transformer.fit_transform(X, y)
+        
+        mat = self.transformer.fit_transform(X, scaler)
+
+        return mat
     
     def __variable_instant(self, X):
         """
@@ -517,6 +555,7 @@ class LBM_Regression:
         returns: 
             var_inst : DataFrame of transformed values
         """
+        
         eye = np.eye(X.shape[0], X.shape[0])
 
         X_sqr = np.sum(np.multiply(X, X), axis=0)
@@ -556,10 +595,6 @@ class LBM_Regression:
         compute the correlation matrix
         '''
         name = y.name if isinstance(y, pd.Series) else y.columns
-        #if hasattr(y, 'name'):
-        #    name = y.name
-        #else:
-        #    name = y.columns
 
         #deprecated : mat = np.corrcoef(pd.concat([X, y], axis=1).T)
         mat = np.ma.corrcoef(pd.concat([X, y], axis=1).T)
@@ -604,46 +639,49 @@ class LBM_Regression:
 
         numerator = np.subtract(matrix, rAC.dot(rBC))
 
-        #avoid negative values in sqrt
+        # rAC_sqr = np.where(rAC > 1, 1, np.square(rAC))
+        # rBC_sqr = np.where(rBC > 1, 1, np.square(rBC))
         rAC_sqr = np.square(rAC)
-        rAC_sqr[rAC_sqr > 1]=0.99
         rBC_sqr = np.square(rBC)
-        rBC_sqr[rBC_sqr > 1]=0.99
 
         denominator = np.sqrt(np.subtract(np.ones(rAC.shape),rAC_sqr)).dot(np.sqrt(np.subtract(np.ones(rBC.shape),rBC_sqr)))
-
+        
         #avoid zero division
-        denominator[denominator==0] = 1000
-
-
-        pcorrelation_matrix = pd.DataFrame(np.divide(numerator,denominator), columns=correlation_matrix.columns)
-
-        for i,j in range(pcorrelation_matrix.shape[0], pcorrelation_matrix.shape[0]):
-            pcorrelation_matrix.iloc[i,j] = 1
-
-        return pcorrelation_matrix
+        np.seterr(invalid='ignore')
+        
+        mask = (denominator == 0) | np.isnan(denominator)
+        div_m = np.where(mask, 0, numerator/denominator)
+        
+        np.seterr()
+        
+        return pd.DataFrame(div_m, columns=correlation_matrix.columns)
     
-    
+    def leave_one_out(self, X):
+        for m in range(X.shape[0]):
+            yield  ( [True if n != m else False for n in range(X.shape[0]) ], [False if n != m else True for n in range(X.shape[0])])  
+
     def __model_evaluation(self, mat_res):
     
-        model = LinearRegression()
 
         #Calcul de Q2 global
         X = np.array(mat_res.iloc[:,1:])
         y = np.array(mat_res.iloc[:,0])
         
-        loot=LeaveOneOut()
-        loot.get_n_splits(X)
 
         SSres = []
         SStot = []
 
+        X = sm.add_constant(X)
+
         #Leave-one-out cross validation
-        for train_index, test_index in loot.split(X):
+        for train_index, test_index in self.leave_one_out(X):
+
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
-                model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
+                
+                model_ols = sm.OLS(y_train, X_train).fit()
+                y_pred = model_ols.predict(X_test)
+
                 SSres.append((float(y_test[0])-float(y_pred[0]))**2)
                 SStot.append(float(y_test[0]))
 
@@ -681,7 +719,6 @@ class LBM_Regression:
             else:
                 location = prediction
         
-            #if type(target) is str or type(target) is float or type(target) is int or type(target) is None:
             if isinstance(target, (str, float, int, type(None))):
                 goal = target
             elif isinstance(target, list):
@@ -710,8 +747,8 @@ class LBM_Regression:
             desirability = np.multiply(desirability, np.power(np.array(objective), target_weights[i]/np.sum(target_weights)).reshape(-1,1))
         return desirability
 
-    def transform(self, X, y=None, scaler: str ='robust', variable_instant:bool=True, allow_autointeraction=False, 
-                  interaction_list: list = None):
+    def transform(self, X, y=None, scaler: str ='standard', variable_instant:bool=True, allow_autointeraction=False, 
+                  interaction_list: list = 'classic'):
         """
         transform method :
         
@@ -724,7 +761,7 @@ class LBM_Regression:
             interaction_list : list, List of interactions that are found relevant to the studied problem
                               'classic' : all interactions described by Lesty et al. 1982. Same as None
                               'ridgeless' : all interactions except three (X_average_if_not_Y, X_average_if_Y, X_if_Y_average)
-                              'quadratic': to perform a classical polynomial regression
+                              'quadratic': to perform a classical quadratic polynomial regression
         
         Return :
             self
@@ -752,6 +789,7 @@ class LBM_Regression:
         #Step2: Rescale data
         try:
             self.X = pd.DataFrame(self.__rescale_data(self.X, self.y, scaler), columns = self.X.columns)
+            #print('X.shape', self.X.shape)
         except:
             raise NotImplementedError('rescaling data failed')
     
@@ -801,8 +839,9 @@ class LBM_Regression:
         start = time.time()
         
         if X is None:
-          X= self.rescaled_features
+          X = self.rescaled_features
         
+
         if type(threshold) is not float:
             raise TypeError('threshold must be a float between 0 and 1')
         
@@ -848,7 +887,7 @@ class LBM_Regression:
             self.model[i]['model_final'] = sm.OLS(y_array, data_array).fit()
             #print(self.model[i]['model_final'].summary())
             print(f'summary of the model for {i}:')
-            print(self.model[i]['model_final'].summary())
+            print(self.model[i]['model_final'].summary(xname= list(data.columns)))
             print('==============================================================================')
             print('\n\n')
 
@@ -882,10 +921,6 @@ class LBM_Regression:
         self.y_pred = pd.DataFrame()
         
         y = self.y if isinstance(self.y, pd.DataFrame) else self.y.to_frame()
-        #try:
-        #    y = self.y.to_frame()
-        #except:
-        #    y = self.y
         
         for i in y:
             new_X = None
@@ -1040,7 +1075,6 @@ class LBM_Regression:
 
             res = pd.concat((sample, prediction, desirability), axis=1)
             
-            #output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(axis=1), :], 3)), axis=1)
             output = pd.concat((np.around(res.nlargest(5, 'desirability').mean(axis=0), 3), np.around(res.iloc[res['desirability'].idxmax(), :], 3)), axis=1)
             output.columns = ['Mean of the 5 best results', 'Best result']
             
@@ -1049,9 +1083,15 @@ class LBM_Regression:
             self.with_optimization = True
             return res   
     
+    def r2_score(self, y, y_pred):
+        y_true, y_pred = np.array(y), np.array(y_pred)
+        numerator = ((y_true - y_pred) ** 2).sum(axis = 0, dtype = np.float64)
+        denominator = ((y_true - np.average(y_true, axis = 0)) ** 2).sum(axis = 0, dtype = np.float64)
+        return 1 - (numerator / denominator)
+
     def fitting_score(self, y):
         
-        self.model[y.name]['r2score'] = r2_score(y, self.model[y.name]['y_pred']).round(3)
+        self.model[y.name]['r2score'] = self.r2_score(y, self.model[y.name]['y_pred']).round(3)
         self.model[y.name]['adjustedr2score'] = (1-(1-self.model[y.name]['r2score'])*(self.model[y.name]['results'].shape[0]-1)/(self.model[y.name]['results'].shape[0]-self.model[y.name]['nb_predictor']-1)).round(3)
         self.model[y.name]['Q2_obs'] = self.model[y.name]['metrics'][self.model[y.name]['nb_predictor']-1]
         stats = pd.DataFrame(np.array([self.model[y.name]['r2score'], self.model[y.name]['adjustedr2score'], self.model[y.name]['Q2_obs'].round(3)]).reshape(1,-1), columns=['R²', 'adj-R²','calc-Q²'], index = ['model score'])
@@ -1125,9 +1165,6 @@ class LBM_Regression:
 
 
 
-
-
-
 '''
 =========================================================================================================================================
                                                         VISUALIZATION TOOLS
@@ -1192,14 +1229,17 @@ class Display:
 
     def __plot_residues(self, y, y_pred) :
             diff = y_pred - y
-            plt.scatter(y, diff)
+            sc = plt.scatter(y, diff, c= y.index, cmap = 'viridis')
+            plt.colorbar(sc)
             plt.xlabel('residual distance')
             plt.ylabel('observation number')
             plt.title('Distribution of the residuals')
+            
     
     def fit(self, y):
-        plt.scatter(y, self.lbm_model.model[y.name]['y_pred'])
-        plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='r')
+        sc = plt.scatter(y, self.lbm_model.model[y.name]['y_pred'], c = y.index, cmap='viridis')
+        plt.plot([np.min(y), np.max(y)], [np.min(y),np.max(y)], c='lightgrey')
+        plt.colorbar(sc)
         plt.xlabel(f'measured values of {self.lbm_model.model[y.name]["results"].iloc[:,0].name}')
         plt.ylabel(f'predicted values of {self.lbm_model.model[y.name]["results"].iloc[:,0].name}')
         plt.title('Measured vs. predicted values')
@@ -1432,7 +1472,8 @@ class Display:
             'names' : list(experimental_domain.keys()),
             'bounds': [[n[1], n[2]] for n in experimental_domain.values()]
         }
-        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= self.lbm_model.X.columns)
+
+        param_values = pd.DataFrame(saltelli.sample(problem, 1024), columns= experimental_domain.keys())
         predictions = self.lbm_model.predict(param_values)
         
         for c in predictions:
@@ -1559,9 +1600,9 @@ class Outliers_Inspection:
             self.mahal_d = np.dot(left_term, diff_x_u.T)
         #ajouter Mahalanobis a outlier summary
         
-        if plot:
-          print("<!> in development <!>")
-          plt.scatter(range(0,self.outliers.summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
+            if plot:
+                print("<!> in development <!>")
+                plt.scatter(range(0,self.outliers[i].summary_frame().shape[0]), self.mahal_d.diagonal(), label=i)
         
         if return_diagonal:
             return self.mahal_d.diagonal()
