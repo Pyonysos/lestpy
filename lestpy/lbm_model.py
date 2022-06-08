@@ -431,13 +431,14 @@ class Difference_X_Y(Interaction):
       
       def fit(self, X, method):
           if method == 'robust':
-              self.a = 0
-              self.denominator = 1
+              self.a = np.percentile(X, 25, axis=0)
+              self.denominator = np.percentile(X, 75, axis=0) - self.a
           elif method == 'minmax':
               self.a = np.min(X, axis=0)
               self.denominator = np.max(X, axis=0) - self.a
           elif method == 'standard':
-              ...
+              self.a = np.mean(X, axis=0)
+              self.denominator = np.std(X, axis=0)
       
       def transform(self,X)
           return (X - self.a) / self.denominator
