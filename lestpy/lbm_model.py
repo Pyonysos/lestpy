@@ -429,7 +429,10 @@ class Transformer:
     def __init__(self):
         self.with_fit = False
         self.with_transform = False
-      
+    
+    def __handle_zeros(self, mat):
+        pass
+    
     def fit(self, X, method):
         if method == 'robust':
             self.a = np.nanpercentile(X, 50, axis=0)
