@@ -879,9 +879,10 @@ class LBM_Regression:
                 
             self.model[i]['nb_predictor'] = self.model[i]['metrics'].index(max(self.model[i]['metrics']))+1
 
+            t = self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1].reset_index(drop=True)
+            bias = pd.DataFrame(np.ones(y[i].shape), columns=['intercept']).reset_index(drop=True)
             #adding a column of bias to the selected features
-            data = pd.concat((self.model[i]['results'].iloc[:,1:self.model[i]['nb_predictor']+1], pd.DataFrame(np.ones(y[i].shape), columns=['intercept'])), axis=1)
-            
+            data = pd.concat((t,bias), axis=1)
             #cast y and data to numpy array
             y_array = np.asarray(y[i], dtype = np.float64)
             data_array = np.asarray(data, dtype= np.float64)
