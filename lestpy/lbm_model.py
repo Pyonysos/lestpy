@@ -612,6 +612,8 @@ class LBM_Regression:
         #identifier la meilleure variable explicative
         corr_X = np.abs(corr_X)
         
+        
+
         #best_interaction = corr_X.iloc[-1, : -1].idxmax(axis=1)
         best_interaction = corr_X.iloc[-1, : -1].idxmax()
         best_corr = M.loc[:, best_interaction]
